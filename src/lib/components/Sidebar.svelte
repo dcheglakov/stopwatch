@@ -4,7 +4,7 @@
 
 {#if isOpen}
 	<aside
-		class="fixed inset-y-4 left-1 z-50 w-full max-w-xl overflow-y-auto rounded-xl bg-gray-400 !text-white shadow-2xl"
+		class="fixed inset-y-0 left-0 z-50 w-full max-w-xl overflow-y-auto bg-gray-400 !text-white"
 	>
 		<header
 			class="sticky top-0 flex h-12 items-center justify-between gap-4 bg-gray-400 px-4 py-2 text-gray-900"
