@@ -14,7 +14,7 @@
 
 {#if laps.length === 0}
 	<div class="flex h-full items-center justify-center text-slate-800">
-		<p>Немає колів</p>
+		<p>Немає кіл</p>
 	</div>
 {:else}
 	<table class="m-auto w-full table-auto font-mono">
