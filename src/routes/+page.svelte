@@ -1,19 +1,25 @@
 <script lang="ts">
-	interface Lap {
-		lapTime: string;
-		totalTime: string;
-		elapsedTime: number;
-		isFastest: boolean;
-		isSlowest: boolean;
-	}
-
-	const INITIAL_TIME_DISPLAY = '00:00:00.00';
-	const LAP_DISTANCE_METERS = 250;
+	import Sidebar from '$lib/components/Sidebar.svelte';
+	import StatsGrid from '$lib/components/StatsGrid.svelte';
+	import StatTitle from '$lib/components/StatTitle.svelte';
+	import Timer from '$lib/components/Timer.svelte';
+	import {
+		formatTime,
+		INITIAL_TIME_DISPLAY,
+		LAP_DISTANCE_METERS,
+		parseTime,
+		TOTAL_DISTANCE_METERS
+	} from '$lib';
+	import type { Lap } from '$lib/types';
+	import LapsTable from '$lib/components/LapsTable.svelte';
 
 	let isRunning = $state(false);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
 	let laps = $state<Lap[]>([]);
 	let elapsedTime = $state(0);
+	let lapsOpen = $state(false);
+
+	let overallDistance = $derived((laps.length * LAP_DISTANCE_METERS) / 1000);
 
 	let startTime: number = 0;
 	let interval: number | undefined;
@@ -30,30 +36,27 @@
 
 	function updateTime() {
 		elapsedTime = Date.now() - startTime;
-		timeDisplay = formatTime(elapsedTime);
-	}
-
-	function formatTime(ms: number) {
-		let milliseconds = Math.floor((ms % 1000) / 10);
-		let seconds = Math.floor((ms / 1000) % 60);
-		let minutes = Math.floor((ms / (1000 * 60)) % 60);
-		let hours = Math.floor(ms / (1000 * 60 * 60));
-
-		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(2, '0')}`;
+		timeDisplay = formatTime(elapsedTime, true);
 	}
 
 	function addLap() {
 		if (isRunning) {
-			const lapTime = elapsedTime - (laps.length ? laps[0].elapsedTime : 0);
-			const totalTime = elapsedTime;
+			const lapTimeMs = elapsedTime - (laps.length ? laps[0].elapsedTime : 0);
+			const lapTime = formatTime(lapTimeMs);
+			const totalTime = formatTime(elapsedTime, true);
+
+			const lapTimeHours = lapTimeMs / (1000 * 60 * 60);
+			const averageSpeed = (LAP_DISTANCE_METERS / 1000 / lapTimeHours).toFixed(2);
+
 			const lap: Lap = {
-				lapTime: formatTime(lapTime),
-				totalTime: formatTime(totalTime),
-				elapsedTime: totalTime,
+				lapTime,
+				totalTime,
+				elapsedTime,
 				isFastest: false,
-				isSlowest: false
+				isSlowest: false,
+				averageSpeed
 			};
-			laps = [lap, ...laps]; // Додаємо нове коло на початок списку
+			laps = [lap, ...laps];
 
 			markFastestSlowestLaps();
 		}
@@ -72,17 +75,6 @@
 		}));
 	}
 
-	function parseTime(timeString: string) {
-		const [hours, minutes, secondsMilliseconds] = timeString.split(':');
-		const [seconds, milliseconds] = secondsMilliseconds.split('.');
-		return (
-			parseInt(hours) * 60 * 60 * 1000 +
-			parseInt(minutes) * 60 * 1000 +
-			parseInt(seconds) * 1000 +
-			parseInt(milliseconds) * 10
-		);
-	}
-
 	function resetTimer() {
 		clearInterval(interval);
 		elapsedTime = 0;
@@ -92,43 +84,57 @@
 	}
 </script>
 
-<main class="stopwatch">
-	<h1 class="px-4 py-24 text-center font-mono text-9xl">{timeDisplay}</h1>
-	<table class="m-auto font-mono">
-		<thead>
-			<tr>
-				<th>Lap</th>
-				<th>Lap Time</th>
-				<th>Total Time</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each laps as lap, index}
-				<tr class="{lap.isFastest ? 'fastest' : ''} {lap.isSlowest ? 'slowest' : ''}">
-					<td>{laps.length - index}</td>
-					<td>{lap.lapTime}</td>
-					<td>{lap.totalTime}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+<svelte:head>
+	<title>{TOTAL_DISTANCE_METERS / 1000} км на треку</title>
+	<meta name="description" content="Stopwatch" />
+</svelte:head>
+
+<header class="flex items-center justify-between gap-5 bg-gray-900 p-4 text-white">
+	<h1 class="font-bold uppercase tracking-wide">{TOTAL_DISTANCE_METERS / 1000} км на треку</h1>
+	<nav class="flex items-center gap-5">
+		<button onclick={() => (lapsOpen = !lapsOpen)}>Статистика</button>
+		<!-- <button onclick={() => (lapsOpen = !lapsOpen)}>Статистика</button> -->
+	</nav>
+</header>
+
+<Sidebar bind:isOpen={lapsOpen}>
+	<LapsTable {laps} />
+</Sidebar>
+
+<main class="bg-slate-800">
+	<StatsGrid>
+		<StatTitle
+			title="Коло (з {TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
+			value={String(laps.length).padStart(3, '0')}
+		/>
+		<StatTitle title="Час на коло (сек)" value={laps.length ? laps[0].lapTime : '00.00'} />
+		<StatTitle title="Швидкість (км/год)" value={laps.length ? laps[0].averageSpeed : '00,00'} />
+		<StatTitle title="Дистанція (км)" value={overallDistance} />
+		<Timer {timeDisplay} />
+	</StatsGrid>
 </main>
 
-<footer
-	class="fixed inset-x-0 bottom-0 flex items-center justify-center gap-5 bg-gray-900 p-4 text-white"
->
-	<button onclick={startStopTimer}>{isRunning ? 'Stop' : 'Start'}</button>
-	<button onclick={addLap} disabled={!isRunning}>Lap</button>
-	<button onclick={resetTimer} disabled={isRunning || elapsedTime === 0}>Reset</button>
+<footer class="flex items-center justify-center bg-gray-900 p-4">
+	<div class="grid w-full grid-cols-2 gap-4 md:w-6/12 xl:w-4/12">
+		{#if !isRunning && elapsedTime > 0}
+			<button
+				class="inline-flex items-center justify-center rounded-lg bg-slate-600 px-4 py-2 text-lg text-white disabled:opacity-50"
+				onclick={resetTimer}
+				disabled={isRunning || elapsedTime === 0}>На нуль</button
+			>
+		{:else}
+			<button
+				class="inline-flex items-center justify-center rounded-lg bg-slate-600 px-4 py-2 text-lg text-white disabled:opacity-50"
+				onclick={addLap}
+				disabled={!isRunning}>Коло</button
+			>
+		{/if}
+		<button
+			class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-lg text-white {isRunning
+				? 'bg-red-600'
+				: 'bg-emerald-600'}"
+			onclick={startStopTimer}
+			>{isRunning ? 'Стоп' : elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+		>
+	</div>
 </footer>
-
-<style>
-	.fastest {
-		color: green;
-		font-weight: bold;
-	}
-	.slowest {
-		color: red;
-		font-weight: bold;
-	}
-</style>
