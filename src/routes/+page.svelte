@@ -108,8 +108,8 @@
 			value={String(laps.length).padStart(3, '0')}
 		/>
 		<StatTitle title="Час на коло (сек)" value={laps.length ? laps[0].lapTime : '00.00'} />
-		<StatTitle title="Швидкість (км/год)" value={laps.length ? laps[0].averageSpeed : '00,00'} />
-		<StatTitle title="Дистанція (км)" value={overallDistance} />
+		<!-- <StatTitle title="Швидкість (км/год)" value={laps.length ? laps[0].averageSpeed : '00,00'} /> -->
+		<!-- <StatTitle title="Дистанція (км)" value={overallDistance} /> -->
 		<Timer {timeDisplay} />
 	</StatsGrid>
 </main>
