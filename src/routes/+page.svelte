@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Confetti } from 'svelte-confetti';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
@@ -18,8 +19,7 @@
 	let laps = $state<Lap[]>([]);
 	let elapsedTime = $state(0);
 	let lapsOpen = $state(false);
-
-	let overallDistance = $derived((laps.length * LAP_DISTANCE_METERS) / 1000);
+	let showConfetti = $state(false);
 
 	let startTime: number = 0;
 	let interval: number | undefined;
@@ -59,6 +59,10 @@
 			laps = [lap, ...laps];
 
 			markFastestSlowestLaps();
+			if (laps.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
+				startStopTimer();
+				showConfetti = true;
+			}
 		}
 	}
 
@@ -102,6 +106,21 @@
 </Sidebar>
 
 <main class="bg-slate-800">
+	{#if showConfetti}
+		<div
+			class="pointer-events-none fixed -top-12 left-0 flex h-screen w-screen justify-center overflow-hidden"
+		>
+			<Confetti
+				x={[-5, 5]}
+				y={[0, 0.1]}
+				delay={[500, 2000]}
+				infinite
+				duration={5000}
+				amount={200}
+				fallDistance="100vh"
+			/>
+		</div>
+	{/if}
 	<StatsGrid>
 		<StatTitle
 			title="Коло (з {TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
