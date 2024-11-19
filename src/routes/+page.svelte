@@ -1,5 +1,8 @@
 <script lang="ts">
+	import LucideTimerReset from '~icons/lucide/timer-reset';
+	import LucidePause from '~icons/lucide/pause';
 	import LucideClipboardList from '~icons/lucide/clipboard-list';
+	import LucideBike from '~icons/lucide/bike';
 	import LucideSun from '~icons/lucide/sun';
 	import LucideMoon from '~icons/lucide/moon';
 	import Sidebar from '$lib/components/Sidebar.svelte';
@@ -28,14 +31,19 @@
 	let startTime: number = 0;
 	let interval: number | undefined;
 
-	function startStopTimer() {
-		if (isRunning) {
-			clearInterval(interval);
-		} else {
+	function startTimer() {
+		if (!isRunning) {
 			startTime = Date.now() - elapsedTime;
 			interval = setInterval(updateTime, 10);
 		}
-		isRunning = !isRunning;
+		isRunning = true;
+	}
+
+	function stopTimer() {
+		if (isRunning) {
+			clearInterval(interval);
+		}
+		isRunning = false;
 	}
 
 	function updateTime() {
@@ -64,7 +72,7 @@
 
 			markFastestSlowestLaps();
 			if (laps.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
-				startStopTimer();
+				stopTimer();
 				showConfetti = true;
 			}
 		}
@@ -91,16 +99,29 @@
 		isRunning = false;
 		showConfetti = false;
 	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === ' ') {
+			if (isRunning) {
+				addLap();
+			}
+			event.preventDefault();
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
 	<title>{TOTAL_DISTANCE_METERS / 1000} км на треку</title>
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
-<div class="{isDark ? 'dark' : ''} contents">
+<div class="{isDark ? 'dark' : ''} contents font-mono">
 	<header class="flex items-center justify-between gap-5 bg-gray-3 p-2 px-6 text-gray-11">
-		<h1 class="font-bold uppercase tracking-wide">{TOTAL_DISTANCE_METERS / 1000} км на треку</h1>
+		<h1 class="flex items-center gap-2 uppercase tracking-wide">
+			<LucideBike />секундомір
+		</h1>
 		<nav class="flex items-center gap-2">
 			<button
 				class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
@@ -137,24 +158,51 @@
 		</StatsGrid>
 	</main>
 
-	<footer class="bg-gray-3 p-4">
-		<button
-			class="inline-flex min-w-32 items-center justify-center rounded-lg bg-gray-9 px-4 py-3 text-lg text-gray-1 hover:bg-gray-10 disabled:opacity-50"
-			onclick={addLap}
-		>
-			Коло
-		</button>
-		<button
-			class="inline-flex min-w-32 items-center justify-center rounded-lg px-4 py-3 text-lg {isRunning
-				? 'bg-danger-9 text-danger-1 hover:bg-danger-10'
-				: 'bg-success-9 text-success-1 hover:bg-success-10'}"
-			onclick={startStopTimer}
-			>{isRunning ? 'Стоп' : elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+	<footer class="relative flex h-20 items-center justify-between gap-2 bg-gray-3 px-4">
+		<progress
+			id="file"
+			max="100"
+			value={(laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
+			class="absolute -top-2 left-0 h-2 w-full"
+			>{(laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
 		>
 		<button
-			class="inline-flex min-w-32 items-center justify-center rounded-lg bg-danger-9 px-4 py-3 text-lg text-danger-1 hover:bg-danger-10 disabled:opacity-50"
+			class="inline-flex items-center justify-center rounded-lg bg-gray-9 p-3 text-lg text-gray-1 hover:bg-gray-10 disabled:opacity-50"
+			disabled={!isRunning}
+			onclick={stopTimer}><LucidePause /></button
+		>
+		{#if !isRunning && laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+			<button
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-success-9 px-4 py-3 uppercase tracking-wide text-success-1 hover:bg-success-10"
+				onclick={startTimer}>{elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+			>
+		{:else if laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+			<button
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-brand-10 px-4 py-3 uppercase tracking-wide text-brand-1 hover:bg-brand-11 disabled:opacity-50"
+				onclick={addLap}
+			>
+				Коло
+			</button>
+		{/if}
+		<button
+			class="inline-flex items-center justify-center rounded-lg bg-gray-9 p-3 text-lg text-gray-1 hover:bg-gray-10 disabled:opacity-50"
 			onclick={resetTimer}
-			disabled={isRunning || elapsedTime === 0}>Спочатку</button
+			disabled={isRunning || elapsedTime === 0}><LucideTimerReset /></button
 		>
 	</footer>
 </div>
+
+<style>
+	progress::-webkit-progress-bar {
+		background-color: var(--slate-6);
+	}
+	progress::-webkit-progress-value {
+		background-color: var(--pink-10);
+	}
+	progress::-moz-progress-bar {
+		background-color: var(--slate-6);
+	}
+	progress::-moz-progress-value {
+		background-color: var(--pink-10);
+	}
+</style>

@@ -6,7 +6,7 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				brand: getColorScale('gold'),
+				brand: getColorScale('pink'),
 				gray: getColorScale('slate'),
 				success: getColorScale('green'),
 				danger: getColorScale('ruby')

@@ -17,7 +17,7 @@
 		<p>Немає кіл</p>
 	</div>
 {:else}
-	<table class="m-auto w-full table-auto font-mono">
+	<table class="m-auto w-full table-auto">
 		<thead class="sticky top-12 bg-gray-700 text-white">
 			<tr>
 				{@render th('Коло')}
