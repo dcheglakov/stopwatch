@@ -1,4 +1,7 @@
 <script lang="ts">
+	import LucideClipboardList from '~icons/lucide/clipboard-list';
+	import LucideSun from '~icons/lucide/sun';
+	import LucideMoon from '~icons/lucide/moon';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
@@ -96,11 +99,23 @@
 </svelte:head>
 
 <div class="{isDark ? 'dark' : ''} contents">
-	<header class="flex items-center justify-between gap-5 bg-gray-3 p-4 text-gray-11">
+	<header class="flex items-center justify-between gap-5 bg-gray-3 p-2 px-6 text-gray-11">
 		<h1 class="font-bold uppercase tracking-wide">{TOTAL_DISTANCE_METERS / 1000} км на треку</h1>
-		<nav class="flex items-center gap-5">
-			<button onclick={() => (lapsOpen = !lapsOpen)}>Статистика</button>
-			<button onclick={() => (isDark = !isDark)}>{isDark ? 'Темна' : 'Світла'}</button>
+		<nav class="flex items-center gap-2">
+			<button
+				class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
+				onclick={() => (lapsOpen = !lapsOpen)}><LucideClipboardList /></button
+			>
+			<button
+				class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
+				onclick={() => (isDark = !isDark)}
+			>
+				{#if isDark}
+					<LucideMoon />
+				{:else}
+					<LucideSun />
+				{/if}
+			</button>
 		</nav>
 	</header>
 
@@ -118,34 +133,28 @@
 				value={String(laps.length).padStart(3, '0')}
 			/>
 			<StatTitle title="Час на коло (сек)" value={laps.length ? laps[0].lapTime : '00.00'} />
-			<!-- <StatTitle title="Швидкість (км/год)" value={laps.length ? laps[0].averageSpeed : '00,00'} /> -->
-			<!-- <StatTitle title="Дистанція (км)" value={overallDistance} /> -->
 			<Timer {timeDisplay} />
 		</StatsGrid>
 	</main>
 
-	<footer class="flex items-center justify-center bg-gray-3 p-4">
-		<div class="grid w-full grid-cols-2 gap-4 md:w-6/12 xl:w-4/12">
-			<button
-				class="inline-flex items-center justify-center rounded-lg bg-gray-9 px-4 py-2 text-lg text-gray-1 hover:bg-gray-10 disabled:opacity-50"
-				onclick={addLap}
-				disabled={!isRunning}>Коло</button
-			>
-			<button
-				class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-lg {isRunning
-					? 'bg-danger-9 text-danger-1 hover:bg-danger-10'
-					: 'bg-success-9 text-success-1 hover:bg-success-10'}"
-				onclick={startStopTimer}
-				>{isRunning ? 'Стоп' : elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
-			>
-			<button
-				class="m-auto inline-flex max-w-sm items-center justify-center rounded-lg bg-danger-9 px-4 py-2 text-lg text-danger-1 hover:bg-danger-10 disabled:opacity-50 {!isRunning &&
-				elapsedTime > 0
-					? ''
-					: 'hidden'}"
-				onclick={resetTimer}
-				disabled={isRunning || elapsedTime === 0}>Спочатку</button
-			>
-		</div>
+	<footer class="bg-gray-3 p-4">
+		<button
+			class="inline-flex min-w-32 items-center justify-center rounded-lg bg-gray-9 px-4 py-3 text-lg text-gray-1 hover:bg-gray-10 disabled:opacity-50"
+			onclick={addLap}
+		>
+			Коло
+		</button>
+		<button
+			class="inline-flex min-w-32 items-center justify-center rounded-lg px-4 py-3 text-lg {isRunning
+				? 'bg-danger-9 text-danger-1 hover:bg-danger-10'
+				: 'bg-success-9 text-success-1 hover:bg-success-10'}"
+			onclick={startStopTimer}
+			>{isRunning ? 'Стоп' : elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+		>
+		<button
+			class="inline-flex min-w-32 items-center justify-center rounded-lg bg-danger-9 px-4 py-3 text-lg text-danger-1 hover:bg-danger-10 disabled:opacity-50"
+			onclick={resetTimer}
+			disabled={isRunning || elapsedTime === 0}>Спочатку</button
+		>
 	</footer>
 </div>
