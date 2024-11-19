@@ -8,7 +8,7 @@ export default {
 			colors: {
 				brand: getColorScale('pink'),
 				gray: getColorScale('slate'),
-				success: getColorScale('green'),
+				success: getColorScale('jade'),
 				danger: getColorScale('ruby')
 			}
 		}
