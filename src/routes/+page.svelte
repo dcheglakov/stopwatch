@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Confetti } from 'svelte-confetti';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
@@ -13,6 +12,7 @@
 	} from '$lib';
 	import type { Lap } from '$lib/types';
 	import LapsTable from '$lib/components/LapsTable.svelte';
+	import Confetti from '$lib/components/Confetti.svelte';
 
 	let isRunning = $state(false);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
@@ -110,30 +110,9 @@
 
 	<main class="bg-gray-1">
 		{#if showConfetti}
-			<div
-				class="pointer-events-none fixed -top-12 left-0 flex h-screen w-screen justify-center overflow-hidden"
-			>
-				<Confetti
-					x={[-5, 5]}
-					y={[0, 0.1]}
-					delay={[500, 2000]}
-					infinite
-					duration={5000}
-					amount={200}
-					fallDistance="100vh"
-				/>
-			</div>
+			<Confetti />
 		{/if}
 		<StatsGrid>
-			<button
-				class="bg-danger-9 text-danger-1 hover:bg-danger-10 m-auto inline-flex max-w-sm items-center justify-center rounded-lg px-4 py-2 text-lg disabled:opacity-50 {!isRunning &&
-				elapsedTime > 0
-					? ''
-					: 'invisible'}"
-				onclick={resetTimer}
-				disabled={isRunning || elapsedTime === 0}>Спочатку</button
-			>
-
 			<StatTitle
 				title="Коло (з {TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
 				value={String(laps.length).padStart(3, '0')}
@@ -154,10 +133,18 @@
 			>
 			<button
 				class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-lg {isRunning
-					? 'bg-danger-9 hover:bg-danger-10 text-danger-1'
-					: 'bg-success-9 hover:bg-success-10 text-success-1'}"
+					? 'bg-danger-9 text-danger-1 hover:bg-danger-10'
+					: 'bg-success-9 text-success-1 hover:bg-success-10'}"
 				onclick={startStopTimer}
 				>{isRunning ? 'Стоп' : elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+			>
+			<button
+				class="m-auto inline-flex max-w-sm items-center justify-center rounded-lg bg-danger-9 px-4 py-2 text-lg text-danger-1 hover:bg-danger-10 disabled:opacity-50 {!isRunning &&
+				elapsedTime > 0
+					? ''
+					: 'hidden'}"
+				onclick={resetTimer}
+				disabled={isRunning || elapsedTime === 0}>Спочатку</button
 			>
 		</div>
 	</footer>

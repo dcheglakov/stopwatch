@@ -2,6 +2,6 @@
 	let { children } = $props();
 </script>
 
-<div class="m-auto grid h-full w-full max-w-2xl grid-cols-1 content-center gap-6 p-4">
+<div class="grid h-full w-full grid-cols-1 content-center gap-2">
 	{@render children()}
 </div>
