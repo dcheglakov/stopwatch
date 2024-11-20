@@ -193,7 +193,7 @@
 		</Dialog>
 		<StatsGrid>
 			<StatTitle
-				title="Коло (з {TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
+				title="Коло ({laps.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
 				value={String(laps.length).padStart(3, '0')}
 			/>
 			<StatTitle title="Час на коло (сек)" value={laps.length ? laps[0].lapTime : '00.00'} />
