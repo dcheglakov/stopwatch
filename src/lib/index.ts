@@ -1,6 +1,6 @@
 export const INITIAL_TIME_DISPLAY = '00:00:00.00';
 export const LAP_DISTANCE_METERS = 250;
-export const TOTAL_DISTANCE_METERS = 200_000;
+export const TOTAL_DISTANCE_METERS = 250_000;
 
 export function formatTime(ms: number, includeHours: boolean = false) {
 	let milliseconds = Math.floor((ms % 1000) / 10);
