@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Confetti from 'svelte-confetti';
+	import { Confetti } from 'svelte-confetti';
 </script>
 
 <div

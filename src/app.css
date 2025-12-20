@@ -1,12 +1,2 @@
-@import '@radix-ui/colors/slate.css';
-@import '@radix-ui/colors/pink.css';
-@import '@radix-ui/colors/jade.css';
-@import '@radix-ui/colors/ruby.css';
-@import '@radix-ui/colors/slate-dark.css';
-@import '@radix-ui/colors/pink-dark.css';
-@import '@radix-ui/colors/jade-dark.css';
-@import '@radix-ui/colors/ruby-dark.css';
-
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import 'tailwindcss';
+@plugin '@iconify/tailwind4';
