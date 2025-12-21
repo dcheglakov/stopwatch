@@ -157,7 +157,7 @@
 						<input
 							id="target-laps"
 							type="number"
-							bind:value={targetLaps}
+							value={targetLaps}
 							oninput={(e) =>
 								(targetLaps = validateTargetLaps(parseInt(e.currentTarget.value) || 1))}
 							min="1"
