@@ -14,3 +14,5 @@ export type {
 	InputHandler,
 	ChangeHandler
 } from './events';
+
+export type { StopwatchSettings, TrackMode } from './settings';

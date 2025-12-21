@@ -6,15 +6,17 @@
 	import LucideBike from '~icons/lucide/bike';
 	import LucideSun from '~icons/lucide/sun';
 	import LucideMoon from '~icons/lucide/moon';
+	import LucideSettings from '~icons/lucide/settings';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
 	import Timer from '$lib/components/Timer.svelte';
-	import { formatTime, LAP_DISTANCE_METERS, TOTAL_DISTANCE_METERS } from '$lib';
+	import { formatTime } from '$lib';
 	import LapsTable from '$lib/components/LapsTable.svelte';
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import SettingsPopover from '$lib/components/SettingsPopover.svelte';
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
 	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
@@ -48,12 +50,48 @@
 	const confirmReset = () => {
 		stopwatch.resetTimer();
 	};
+
+	// Отримання заголовка і значення залежно від режиму
+	const modeTitle = $derived(() => {
+		switch (stopwatch.settings.mode) {
+			case 'distance':
+				return 'Дистанція';
+			case 'laps':
+				return 'Кола';
+			case 'time':
+				return 'Час';
+		}
+	});
+
+	const modeValue = $derived(() => {
+		switch (stopwatch.settings.mode) {
+			case 'distance':
+				return `${(stopwatch.currentDistance / 1000).toFixed(1)} / ${(stopwatch.totalDistance / 1000).toFixed(1)} км`;
+			case 'laps':
+				return `${stopwatch.laps.length} / ${stopwatch.targetLapsCount}`;
+			case 'time':
+				return formatTime(stopwatch.elapsedTime, true);
+		}
+	});
+
+	const canAddLap = $derived(() => {
+		// Для режиму часу можна додавати кола завжди поки не закінчився час
+		if (stopwatch.settings.mode === 'time') {
+			return stopwatch.isRunning && !stopwatch.isFinished;
+		}
+		// Для інших режимів - поки не досягли цілі
+		return stopwatch.isRunning && !stopwatch.isFinished;
+	});
+
+	const canStart = $derived(() => {
+		return !stopwatch.isRunning && !stopwatch.isFinished;
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>{TOTAL_DISTANCE_METERS / 1000} км на треку</title>
+	<title>Секундомір на треку</title>
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
@@ -113,11 +151,13 @@
 						</div>
 						<div>
 							<dt class="font-medium">Дистанція</dt>
-							<dd class="text-2xl font-semibold">{TOTAL_DISTANCE_METERS / 1000} км</dd>
+							<dd class="text-2xl font-semibold">
+								{(stopwatch.currentDistance / 1000).toFixed(1)} км
+							</dd>
 						</div>
 						<div>
 							<dt class="font-medium">Кількість кіл</dt>
-							<dd class="text-2xl font-semibold">{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}</dd>
+							<dd class="text-2xl font-semibold">{stopwatch.laps.length}</dd>
 						</div>
 					</dl>
 				</div>
@@ -125,10 +165,7 @@
 			</div>
 		</Dialog>
 		<StatsGrid>
-			<StatTitle
-				title="Коло ({stopwatch.laps.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
-				value={String(stopwatch.laps.length).padStart(3, '0')}
-			/>
+			<StatTitle title={modeTitle()} value={modeValue()} />
 			<StatTitle
 				title="Час на коло (сек)"
 				value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
@@ -143,21 +180,27 @@
 		<progress
 			id="file"
 			max="100"
-			value={(stopwatch.laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
-			class="absolute -top-2 left-0 h-2 w-full"
-			>{(stopwatch.laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
+			value={stopwatch.progressPercentage}
+			class="absolute -top-2 left-0 h-2 w-full">{stopwatch.progressPercentage}%</progress
 		>
-		<button
-			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
-			disabled={!stopwatch.isRunning}
-			onclick={stopwatch.stopTimer}><LucidePause /></button
-		>
-		{#if !stopwatch.isRunning && stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		<div class="flex gap-2">
+			<button
+				class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
+				disabled={!stopwatch.isRunning}
+				onclick={stopwatch.stopTimer}><LucidePause /></button
+			>
+			<SettingsPopover
+				settings={stopwatch.settings}
+				onSettingsChange={stopwatch.updateSettings}
+				disabled={stopwatch.isRunning || stopwatch.elapsedTime > 0}
+			/>
+		</div>
+		{#if canStart()}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
 				onclick={stopwatch.startTimer}>{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
 			>
-		{:else if stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		{:else if canAddLap()}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-blue-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
 				onclick={stopwatch.addLap}

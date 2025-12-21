@@ -1,11 +1,14 @@
 import { PersistedState } from 'runed';
-import { onMount, onDestroy, untrack } from 'svelte';
-import { formatTime, parseTime, LAP_DISTANCE_METERS, TOTAL_DISTANCE_METERS, INITIAL_TIME_DISPLAY } from '$lib';
+import { onMount, onDestroy } from 'svelte';
+import { formatTime, parseTime, INITIAL_TIME_DISPLAY } from '$lib';
 import type { Lap } from '$lib/types';
+import type { StopwatchSettings } from '$lib/types/settings';
+import { DEFAULT_SETTINGS } from '$lib/types/settings';
 
 export function useStopwatch() {
 	const laps = new PersistedState<Lap[]>('stopwatch-laps', []);
 	const elapsedTime = new PersistedState<number>('stopwatch-elapsed-time', 0);
+	const settings = new PersistedState<StopwatchSettings>('stopwatch-settings', DEFAULT_SETTINGS);
 
 	let isRunning = $state(false);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
@@ -16,17 +19,66 @@ export function useStopwatch() {
 
 	const totalAverageSpeed = $derived(
 		laps.current.length > 0
-			? (laps.current.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.current.length).toFixed(2)
+			? (
+					laps.current.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.current.length
+				).toFixed(2)
 			: '0.00'
 	);
 
-	const isFinished = $derived(
-		laps.current.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS
-	);
+	// Обчислення залежно від режиму
+	const targetLapsCount = $derived(() => {
+		const s = settings.current;
+		switch (s.mode) {
+			case 'distance':
+				return Math.ceil(s.targetDistance / s.lapDistance);
+			case 'laps':
+				return s.targetLaps;
+			case 'time':
+				// Для режиму часу немає фіксованої кількості кіл
+				return Number.POSITIVE_INFINITY;
+		}
+	});
+
+	const currentDistance = $derived(laps.current.length * settings.current.lapDistance);
+
+	const totalDistance = $derived(() => {
+		const s = settings.current;
+		return s.mode === 'distance' ? s.targetDistance : targetLapsCount() * s.lapDistance;
+	});
+
+	const isFinished = $derived(() => {
+		const s = settings.current;
+		switch (s.mode) {
+			case 'distance':
+				return currentDistance >= s.targetDistance;
+			case 'laps':
+				return laps.current.length >= s.targetLaps;
+			case 'time':
+				return elapsedTime.current >= s.targetTime;
+		}
+	});
+
+	const progressPercentage = $derived(() => {
+		const s = settings.current;
+		switch (s.mode) {
+			case 'distance':
+				return Math.min((currentDistance / s.targetDistance) * 100, 100);
+			case 'laps':
+				return Math.min((laps.current.length / s.targetLaps) * 100, 100);
+			case 'time':
+				return Math.min((elapsedTime.current / s.targetTime) * 100, 100);
+		}
+	});
 
 	function updateTime() {
 		elapsedTime.current = Date.now() - startTime;
 		timeDisplay = formatTime(elapsedTime.current, true);
+
+		// Перевірка завершення для режиму часу
+		if (settings.current.mode === 'time' && isFinished()) {
+			stopTimer();
+			showConfetti = true;
+		}
 	}
 
 	function startTimer() {
@@ -59,12 +111,13 @@ export function useStopwatch() {
 
 	function addLap() {
 		if (isRunning) {
-			const lapTimeMs = elapsedTime.current - (laps.current.length ? laps.current[0].elapsedTime : 0);
+			const lapTimeMs =
+				elapsedTime.current - (laps.current.length ? laps.current[0].elapsedTime : 0);
 			const lapTime = formatTime(lapTimeMs);
 			const totalTime = formatTime(elapsedTime.current, true);
 
 			const lapTimeHours = lapTimeMs / (1000 * 60 * 60);
-			const averageSpeed = (LAP_DISTANCE_METERS / 1000 / lapTimeHours).toFixed(2);
+			const averageSpeed = (settings.current.lapDistance / 1000 / lapTimeHours).toFixed(2);
 
 			const lap: Lap = {
 				lapTime,
@@ -78,7 +131,8 @@ export function useStopwatch() {
 
 			markFastestSlowestLaps();
 
-			if (laps.current.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
+			// Перевірка завершення для режимів дистанції та кіл
+			if (settings.current.mode !== 'time' && isFinished()) {
 				stopTimer();
 				showConfetti = true;
 			}
@@ -92,6 +146,10 @@ export function useStopwatch() {
 		laps.current = [];
 		isRunning = false;
 		showConfetti = false;
+	}
+
+	function updateSettings(newSettings: StopwatchSettings) {
+		settings.current = newSettings;
 	}
 
 	onMount(() => {
@@ -108,21 +166,53 @@ export function useStopwatch() {
 
 	return {
 		// State
-		get laps() { return laps.current; },
-		get elapsedTime() { return elapsedTime.current; },
-		get isRunning() { return isRunning; },
-		get timeDisplay() { return timeDisplay; },
-		get showConfetti() { return showConfetti; },
-		set showConfetti(value: boolean) { showConfetti = value; },
+		get laps() {
+			return laps.current;
+		},
+		get elapsedTime() {
+			return elapsedTime.current;
+		},
+		get isRunning() {
+			return isRunning;
+		},
+		get timeDisplay() {
+			return timeDisplay;
+		},
+		get showConfetti() {
+			return showConfetti;
+		},
+		set showConfetti(value: boolean) {
+			showConfetti = value;
+		},
+		get settings() {
+			return settings.current;
+		},
 
 		// Derived
-		get totalAverageSpeed() { return totalAverageSpeed; },
-		get isFinished() { return isFinished; },
+		get totalAverageSpeed() {
+			return totalAverageSpeed;
+		},
+		get isFinished() {
+			return isFinished();
+		},
+		get currentDistance() {
+			return currentDistance;
+		},
+		get totalDistance() {
+			return totalDistance();
+		},
+		get targetLapsCount() {
+			return targetLapsCount();
+		},
+		get progressPercentage() {
+			return progressPercentage();
+		},
 
 		// Actions
 		startTimer,
 		stopTimer,
 		addLap,
-		resetTimer
+		resetTimer,
+		updateSettings
 	};
 }
