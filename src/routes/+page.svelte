@@ -56,11 +56,30 @@
 		if (ms === 0) return '0 хв';
 
 		const duration = intervalToDuration({ start: 0, end: ms });
+		const parts: string[] = [];
 
-		return formatDuration(duration, {
-			format: ['hours', 'minutes', 'seconds'],
-			locale: uk
-		});
+		if (duration.hours) {
+			parts.push(`${duration.hours} год`);
+		}
+		if (duration.minutes) {
+			parts.push(`${duration.minutes} хв`);
+		}
+		if (duration.seconds && !duration.hours) {
+			parts.push(`${duration.seconds} сек`);
+		}
+
+		// Якщо менше хвилини, показуємо секунди
+		if (!duration.hours && !duration.minutes && duration.seconds) {
+			return `${duration.seconds} сек`;
+		}
+
+		// Якщо є години та хвилини, але не показуємо секунди
+		if (duration.hours && duration.minutes) {
+			return `${duration.hours} год ${duration.minutes} хв`;
+		}
+
+		// Якщо тільки години або тільки хвилини
+		return parts.join(' ') || '0 хв';
 	}
 
 	// Завжди показуємо три метрики
