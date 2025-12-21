@@ -5,21 +5,24 @@
 </script>
 
 {#snippet th(title: string)}
-	<th class="border-b border-gray-6 px-4 py-2 text-right text-sm font-bold text-gray-12">{title}</th
+	<th
+		class="border-b border-gray-300 px-4 py-2 text-right text-sm font-bold text-gray-900 dark:border-gray-600 dark:text-white"
+		>{title}</th
 	>
 {/snippet}
 
 {#snippet td(value: number | string)}
-	<td class="border-b border-gray-7 px-4 py-2 text-right text-sm">{value}</td>
+	<td class="border-b border-gray-200 px-4 py-2 text-right text-sm dark:border-gray-700">{value}</td
+	>
 {/snippet}
 
 {#if laps.length === 0}
-	<div class="flex h-full items-center justify-center text-gray-11">
+	<div class="flex h-full items-center justify-center text-gray-600 dark:text-gray-400">
 		<p>Немає кіл</p>
 	</div>
 {:else}
 	<table class="m-auto w-full table-auto">
-		<thead class="sticky top-16 bg-gray-5">
+		<thead class="sticky top-16 bg-gray-200 dark:bg-gray-700">
 			<tr>
 				{@render th('Коло')}
 				{@render th('Час')}
@@ -31,10 +34,10 @@
 			{#each laps as lap, index}
 				<tr
 					class={lap.isFastest
-						? 'bg-brand-4 text-brand-11'
+						? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
 						: lap.isSlowest
-							? 'bg-danger-4 text-danger-11'
-							: 'bg-gray-4 text-gray-11 even:bg-gray-6'}
+							? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+							: 'dark:even:bg-gray-750 bg-white text-gray-700 even:bg-gray-50 dark:bg-gray-800 dark:text-gray-300'}
 				>
 					{@render td(laps.length - index)}
 					{@render td(lap.lapTime)}

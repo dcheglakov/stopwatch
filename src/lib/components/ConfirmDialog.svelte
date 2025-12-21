@@ -32,21 +32,21 @@
 
 <dialog
 	bind:this={dialog}
-	class="border-gray-6 bg-gray-2 text-gray-11 m-auto max-w-md rounded-xl border-2 p-0 backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+	class="m-auto max-w-md rounded-xl border-2 border-gray-300 bg-white p-0 text-gray-800 backdrop:bg-black/40 backdrop:backdrop-blur-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
 >
 	<div class="p-6">
-		<h2 class="text-gray-12 mb-2 text-xl font-bold">{title}</h2>
-		<p class="text-gray-11 mb-6">{message}</p>
+		<h2 class="mb-2 text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
+		<p class="mb-6 text-gray-700 dark:text-gray-300">{message}</p>
 
 		<div class="flex justify-end gap-3">
 			<button
-				class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg px-4 py-2"
+				class="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={handleCancel}
 			>
 				{cancelText}
 			</button>
 			<button
-				class="bg-danger-9 text-danger-1 hover:bg-danger-10 rounded-lg px-4 py-2"
+				class="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
 				onclick={handleConfirm}
 			>
 				{confirmText}

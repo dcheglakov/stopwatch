@@ -21,10 +21,10 @@
 
 <dialog
 	bind:this={dialog}
-	class="border-gray-6 bg-gray-2 text-gray-11 max-w-2xl rounded-xl border-4 backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+	class="max-w-2xl rounded-xl border-4 border-gray-300 bg-white text-gray-800 backdrop:bg-black/40 backdrop:backdrop-blur-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
 >
 	<button
-		class="bg-gray-5 text-gray-11 hover:bg-gray-6 absolute top-4 right-4 rounded-full p-2"
+		class="absolute top-4 right-4 rounded-full bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 		onclick={handleClose}><LucideX /></button
 	>
 	{@render children()}

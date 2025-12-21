@@ -58,23 +58,25 @@
 </svelte:head>
 
 <div class="{isDark.current ? 'dark' : ''} contents font-mono">
-	<header class="bg-gray-3 text-gray-11 flex items-center justify-between gap-5 p-2 px-6">
+	<header
+		class="flex items-center justify-between gap-5 bg-gray-100 p-2 px-6 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+	>
 		<h1 class="flex items-center gap-2 tracking-wide uppercase">
 			<LucideBike />секундомір
 		</h1>
 		<nav class="flex items-center gap-2">
 			{#if stopwatch.showConfetti}
 				<button
-					class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
+					class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 					onclick={() => dialog?.showModal()}><LucideTrophy /></button
 				>
 			{/if}
 			<button
-				class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
+				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (lapsOpen = !lapsOpen)}><LucideClipboardList /></button
 			>
 			<button
-				class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
+				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (isDark.current = !isDark.current)}
 			>
 				{#if isDark.current}
@@ -90,7 +92,7 @@
 		<LapsTable laps={stopwatch.laps} />
 	</Sidebar>
 
-	<main class="bg-gray-1">
+	<main class="bg-white dark:bg-gray-900">
 		{#if stopwatch.showConfetti}
 			<Confetti />
 		{/if}
@@ -135,7 +137,9 @@
 		</StatsGrid>
 	</main>
 
-	<footer class="bg-gray-3 relative flex h-20 items-center justify-between gap-2 px-4">
+	<footer
+		class="relative flex h-20 items-center justify-between gap-2 bg-gray-100 px-4 dark:bg-gray-800"
+	>
 		<progress
 			id="file"
 			max="100"
@@ -144,25 +148,25 @@
 			>{(stopwatch.laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
 		>
 		<button
-			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
 			disabled={!stopwatch.isRunning}
 			onclick={stopwatch.stopTimer}><LucidePause /></button
 		>
 		{#if !stopwatch.isRunning && stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
-				class="bg-success-9 text-success-1 hover:bg-success-10 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase"
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
 				onclick={stopwatch.startTimer}>{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
 			>
 		{:else if stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
-				class="bg-brand-10 text-brand-1 hover:bg-brand-11 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase disabled:opacity-50"
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-blue-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
 				onclick={stopwatch.addLap}
 			>
 				Коло
 			</button>
 		{/if}
 		<button
-			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
 			onclick={handleResetClick}
 			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}><LucideTimerReset /></button
 		>
@@ -180,15 +184,19 @@
 
 <style>
 	progress::-webkit-progress-bar {
-		background-color: var(--slate-6);
+		background-color: #e5e7eb; /* gray-200 */
 	}
 	progress::-webkit-progress-value {
-		background-color: var(--pink-10);
+		background-color: #ec4899; /* pink-500 */
 	}
 	progress::-moz-progress-bar {
-		background-color: var(--slate-6);
+		background-color: #e5e7eb;
 	}
-	progress::-moz-progress-value {
-		background-color: var(--pink-10);
+
+	:global(.dark) progress::-webkit-progress-bar {
+		background-color: #374151; /* gray-700 */
+	}
+	:global(.dark) progress::-webkit-progress-value {
+		background-color: #f472b6; /* pink-400 */
 	}
 </style>

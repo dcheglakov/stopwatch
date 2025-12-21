@@ -12,12 +12,15 @@
 
 {#if isOpen}
 	<aside
-		class="bg-gray-2 shadow-gray-8 fixed inset-y-0 left-0 z-50 w-full max-w-lg overflow-y-auto shadow-lg"
+		class="fixed inset-y-0 left-0 z-50 w-full max-w-lg overflow-y-auto bg-white shadow-lg shadow-gray-400 dark:bg-gray-800 dark:shadow-gray-900"
 	>
-		<header class="bg-gray-2 sticky top-0 flex h-16 items-center justify-between gap-4 px-4">
-			<h2 class="text-gray-12">Статистика</h2>
-			<button class="bg-gray-4 text-gray-11 hover:bg-gray-5 rounded p-2" onclick={handleClose}
-				><LucideX /></button
+		<header
+			class="sticky top-0 flex h-16 items-center justify-between gap-4 bg-white px-4 dark:bg-gray-800"
+		>
+			<h2 class="text-gray-900 dark:text-white">Статистика</h2>
+			<button
+				class="rounded bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+				onclick={handleClose}><LucideX /></button
 			>
 		</header>
 		{@render children()}
