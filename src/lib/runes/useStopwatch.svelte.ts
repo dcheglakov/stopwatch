@@ -9,8 +9,9 @@ export function useStopwatch() {
 	const laps = new PersistedState<Lap[]>('stopwatch-laps', []);
 	const elapsedTime = new PersistedState<number>('stopwatch-elapsed-time', 0);
 	const settings = new PersistedState<StopwatchSettings>('stopwatch-settings', DEFAULT_SETTINGS);
+	const isRunningState = new PersistedState<boolean>('stopwatch-is-running', false);
 
-	let isRunning = $state(false);
+	let isRunning = $state(isRunningState.current);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
 	let showConfetti = $state(false);
 
@@ -87,6 +88,7 @@ export function useStopwatch() {
 		if (!isRunning) {
 			startTime = Date.now() - elapsedTime.current;
 			interval = setInterval(updateTime, 10);
+			isRunningState.current = true;
 		}
 		isRunning = true;
 	}
@@ -94,6 +96,7 @@ export function useStopwatch() {
 	function stopTimer() {
 		if (isRunning) {
 			clearInterval(interval);
+			isRunningState.current = false;
 		}
 		isRunning = false;
 	}
@@ -147,6 +150,7 @@ export function useStopwatch() {
 		timeDisplay = INITIAL_TIME_DISPLAY;
 		laps.current = [];
 		isRunning = false;
+		isRunningState.current = false;
 		showConfetti = false;
 	}
 
@@ -157,6 +161,16 @@ export function useStopwatch() {
 	onMount(() => {
 		if (elapsedTime.current > 0) {
 			timeDisplay = formatTime(elapsedTime.current, true);
+		}
+
+		// Відновлюємо стан роботи таймера після оновлення сторінки
+		if (isRunningState.current && !isFinished()) {
+			startTime = Date.now() - elapsedTime.current;
+			interval = setInterval(updateTime, 10);
+			isRunning = true;
+		} else {
+			isRunning = false;
+			isRunningState.current = false;
 		}
 	});
 
