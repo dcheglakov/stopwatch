@@ -37,13 +37,23 @@
 	}
 
 	function formatTimeInput(ms: number): string {
-		const minutes = Math.floor(ms / 60000);
-		return minutes.toString();
+		const hours = Math.floor(ms / 3600000);
+		return hours.toString();
 	}
 
 	function parseTimeInput(value: string): number {
-		const minutes = parseInt(value) || 0;
-		return minutes * 60000;
+		const hours = parseInt(value) || 0;
+		return hours * 3600000;
+	}
+
+	function formatDistanceInput(meters: number): string {
+		const km = Math.floor(meters / 1000);
+		return km.toString();
+	}
+
+	function parseDistanceInput(value: string): number {
+		const km = parseInt(value) || 0;
+		return km * 1000;
 	}
 </script>
 
@@ -122,7 +132,7 @@
 				{#if mode === 'time'}
 					<div class="space-y-2">
 						<label for="target-time" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-							Цільовий час (хвилини)
+							Цільовий час (години)
 						</label>
 						<input
 							id="target-time"
@@ -150,15 +160,19 @@
 					</div>
 				{:else if mode === 'distance'}
 					<div class="space-y-2">
-						<label for="target-distance" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-							Цільова дистанція (метри)
+						<label
+							for="target-distance"
+							class="text-sm font-medium text-gray-700 dark:text-gray-300"
+						>
+							Цільова дистанція (кілометри)
 						</label>
 						<input
 							id="target-distance"
 							type="number"
-							bind:value={targetDistance}
-							min="100"
-							step="100"
+							value={formatDistanceInput(targetDistance)}
+							oninput={(e) => (targetDistance = parseDistanceInput(e.currentTarget.value))}
+							min="1"
+							step="5"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
 					</div>
