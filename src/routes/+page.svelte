@@ -73,9 +73,8 @@
 			return `${duration.seconds} сек`;
 		}
 
-		// Якщо є години та хвилини, але не показуємо секунди
-		if (duration.hours && duration.minutes) {
-			return `${duration.hours} год ${duration.minutes} хв`;
+		if (duration.hours && duration.minutes && duration.seconds) {
+			return `${duration.hours} год ${duration.minutes} хв ${duration.seconds} сек`;
 		}
 
 		// Якщо тільки години або тільки хвилини
