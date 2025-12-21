@@ -60,25 +60,8 @@
 
 		const duration = intervalToDuration({ start: 0, end: ms });
 
-		// Якщо менше хвилини
-		if (!duration.hours && !duration.minutes) {
-			return formatDuration(duration, {
-				format: ['seconds'],
-				locale: uk
-			});
-		}
-
-		// Якщо менше години
-		if (!duration.hours) {
-			return formatDuration(duration, {
-				format: ['minutes', 'seconds'],
-				locale: uk
-			});
-		}
-
-		// Якщо є години
 		return formatDuration(duration, {
-			format: ['hours', 'minutes'],
+			format: ['hours', 'minutes', 'seconds'],
 			locale: uk
 		});
 	}
@@ -178,9 +161,9 @@
 			<Confetti />
 		{/if}
 		<Dialog bind:dialog>
-			<div class="grid grid-cols-2">
+			<div class="grid grid-cols-1 sm:grid-cols-2">
 				<div class="p-6">
-					<h2 class="pb-6 text-3xl font-bold">Вітаємо дон Влодко!</h2>
+					<h2 class="pb-6 text-3xl font-bold">Вітаємо,<br />дон Влодко!</h2>
 					<dl class="flex flex-col gap-4">
 						<div>
 							<dt class="font-medium">Середня швидкість</dt>
@@ -190,12 +173,12 @@
 						</div>
 						<div>
 							<dt class="font-medium">Загальний час</dt>
-							<dd class="text-2xl font-semibold">{formatTime(stopwatch.elapsedTime, true)}</dd>
+							<dd class="text-2xl font-semibold">{formatHumanTime(stopwatch.elapsedTime)}</dd>
 						</div>
 						<div>
 							<dt class="font-medium">Дистанція</dt>
 							<dd class="text-2xl font-semibold">
-								{(stopwatch.currentDistance / 1000).toFixed(1)} км
+								{(stopwatch.currentDistance / 1000).toFixed(2)} км
 							</dd>
 						</div>
 						<div>
@@ -204,7 +187,7 @@
 						</div>
 					</dl>
 				</div>
-				<img src="/images/don.jpg" alt="Logo" class="h-auto w-full" />
+				<img src="/images/don.jpg" alt="Logo" class="hidden h-auto w-full sm:block" />
 			</div>
 		</Dialog>
 		<StatsGrid>
