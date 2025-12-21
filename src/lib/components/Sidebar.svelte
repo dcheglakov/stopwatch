@@ -3,7 +3,7 @@
 	import type { ClickHandler } from '$lib/types/events';
 	import type { Snippet } from 'svelte';
 
-	let { children, isOpen = $bindable(false) }: { children: Snippet; isOpen?: boolean } = $props();
+	let { children, isOpen = $bindable(false) }: { children?: Snippet; isOpen?: boolean } = $props();
 
 	const handleClose: ClickHandler = () => {
 		isOpen = false;
@@ -23,6 +23,8 @@
 				onclick={handleClose}><LucideX /></button
 			>
 		</header>
-		{@render children()}
+		{#if children}
+			{@render children()}
+		{/if}
 	</aside>
 {/if}

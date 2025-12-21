@@ -17,7 +17,7 @@
 {/snippet}
 
 {#if laps.length === 0}
-	<div class="flex h-full items-center justify-center text-gray-600 dark:text-gray-400">
+	<div class="flex items-center justify-center text-gray-600 dark:text-gray-400">
 		<p>Немає кіл</p>
 	</div>
 {:else}
@@ -31,7 +31,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each laps as lap, index}
+			{#each laps as lap, index (lap)}
 				<tr
 					class={lap.isFastest
 						? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
