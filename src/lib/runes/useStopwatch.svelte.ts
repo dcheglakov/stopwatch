@@ -6,37 +6,49 @@ import type { StopwatchSettings } from '$lib/types/settings';
 import { DEFAULT_SETTINGS } from '$lib/types/settings';
 
 export function useStopwatch() {
+	// 1. Зберігаємо історію кіл (це ок, пишеться рідко)
 	const laps = new PersistedState<Lap[]>('stopwatch-laps', []);
-	const elapsedTime = new PersistedState<number>('stopwatch-elapsed-time', 0);
+
+	// 2. Зберігаємо налаштування (це ок)
 	const settings = new PersistedState<StopwatchSettings>('stopwatch-settings', DEFAULT_SETTINGS);
+
+	// 3. Зберігаємо стан "запущено чи ні"
 	const isRunningState = new PersistedState<boolean>('stopwatch-is-running', false);
+
+	// 4. НОВЕ: Зберігаємо час "старту" (timestamp).
+	// Це "якір". Якщо таймер йде, ми рахуємо різницю від цього числа.
+	// Це замінює постійний запис elapsed time.
+	const startTimeState = new PersistedState<number>('stopwatch-start-time', 0);
+
+	// 5. НОВЕ: Зберігаємо "накопичений" час при паузі.
+	// Коли ми натискаємо Стоп, ми записуємо сюди, скільки набігло.
+	const accumulatedTimeState = new PersistedState<number>('stopwatch-accumulated-time', 0);
+
+	// 6. ЛОКАЛЬНИЙ стан для відображення. Це НЕ пишеться в localStorage.
+	// Це просто реактивна змінна для UI.
+	let currentElapsedTime = $state(0);
 
 	let isRunning = $state(isRunningState.current);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
 	let showConfetti = $state(false);
 
-	let startTime: number = 0;
 	let interval: number | undefined;
 
-	// Середня швидкість на основі загального часу та дистанції
+	// --- Derived Values (обчислення) ---
+
+	// Важливо: для розрахунків використовуємо currentElapsedTime (локальний швидкий стейт)
 	const totalAverageSpeed = $derived(() => {
-		if (elapsedTime.current === 0 || laps.current.length === 0) {
-			return '0.00';
-		}
+		if (currentElapsedTime === 0 || laps.current.length === 0) return '0.00';
 		const totalDistanceKm = currentDistance / 1000;
-		const totalTimeHours = elapsedTime.current / (1000 * 60 * 60);
+		const totalTimeHours = currentElapsedTime / (1000 * 60 * 60);
 		return (totalDistanceKm / totalTimeHours).toFixed(2);
 	});
 
-	// Фіксована швидкість останнього кола
 	const lastLapSpeed = $derived(() => {
-		if (laps.current.length === 0) {
-			return '0.00';
-		}
+		if (laps.current.length === 0) return '0.00';
 		return laps.current[0].averageSpeed;
 	});
 
-	// Обчислення залежно від режиму
 	const targetLapsCount = $derived(() => {
 		const s = settings.current;
 		switch (s.mode) {
@@ -45,7 +57,6 @@ export function useStopwatch() {
 			case 'laps':
 				return s.targetLaps;
 			case 'time':
-				// Для режиму часу немає фіксованої кількості кіл
 				return Number.POSITIVE_INFINITY;
 		}
 	});
@@ -65,7 +76,7 @@ export function useStopwatch() {
 			case 'laps':
 				return laps.current.length >= s.targetLaps;
 			case 'time':
-				return elapsedTime.current >= s.targetTime;
+				return currentElapsedTime >= s.targetTime;
 		}
 	});
 
@@ -77,15 +88,20 @@ export function useStopwatch() {
 			case 'laps':
 				return Math.min((laps.current.length / s.targetLaps) * 100, 100);
 			case 'time':
-				return Math.min((elapsedTime.current / s.targetTime) * 100, 100);
+				return Math.min((currentElapsedTime / s.targetTime) * 100, 100);
 		}
 	});
 
-	function updateTime() {
-		elapsedTime.current = Date.now() - startTime;
-		timeDisplay = formatTime(elapsedTime.current, true);
+	// --- Логіка Таймера ---
 
-		// Перевірка завершення для режиму часу
+	function updateTime() {
+		const now = Date.now();
+		// Оновлюємо лише локальну змінну! Ніякого запису на диск.
+		// Формула: Час = (Зараз - Час старту) + (Час накопичений до цього запуску)
+		currentElapsedTime = now - startTimeState.current + accumulatedTimeState.current;
+
+		timeDisplay = formatTime(currentElapsedTime, true);
+
 		if (settings.current.mode === 'time' && isFinished()) {
 			stopTimer();
 			showConfetti = true;
@@ -94,40 +110,57 @@ export function useStopwatch() {
 
 	function startTimer() {
 		if (!isRunning) {
-			startTime = Date.now() - elapsedTime.current;
+			// Встановлюємо "Якір" на поточний момент
+			startTimeState.current = Date.now();
+
+			// Запускаємо інтервал лише для оновлення UI
 			interval = setInterval(updateTime, 10);
+
 			isRunningState.current = true;
+			isRunning = true;
 		}
-		isRunning = true;
 	}
 
 	function stopTimer() {
 		if (isRunning) {
 			clearInterval(interval);
+
+			// КОЛИ зупиняємо - фіксуємо накопичений час у Storage
+			// Це відбувається 1 раз, а не 100 разів на секунду
+			const now = Date.now();
+			const sessionDuration = now - startTimeState.current;
+			accumulatedTimeState.current += sessionDuration;
+
 			isRunningState.current = false;
+			isRunning = false;
 		}
+	}
+
+	function resetTimer() {
+		clearInterval(interval);
+
+		// Скидаємо всі збережені стани
+		accumulatedTimeState.current = 0;
+		startTimeState.current = 0;
+		isRunningState.current = false;
+
+		// Скидаємо локальні стани
+		currentElapsedTime = 0;
+		timeDisplay = INITIAL_TIME_DISPLAY;
+		laps.current = [];
 		isRunning = false;
+		showConfetti = false;
 	}
 
-	function markFastestSlowestLaps() {
-		if (laps.current.length < 2) return;
-
-		const fastestLapTime = Math.min(...laps.current.map((lap) => parseTime(lap.lapTime)));
-		const slowestLapTime = Math.max(...laps.current.map((lap) => parseTime(lap.lapTime)));
-
-		laps.current = laps.current.map((lap) => ({
-			...lap,
-			isFastest: parseTime(lap.lapTime) === fastestLapTime,
-			isSlowest: parseTime(lap.lapTime) === slowestLapTime
-		}));
-	}
+	// --- Логіка кіл ---
 
 	function addLap() {
 		if (isRunning) {
+			// Використовуємо currentElapsedTime (він актуальний)
 			const lapTimeMs =
-				elapsedTime.current - (laps.current.length ? laps.current[0].elapsedTime : 0);
+				currentElapsedTime - (laps.current.length ? laps.current[0].elapsedTime : 0);
 			const lapTime = formatTime(lapTimeMs);
-			const totalTime = formatTime(elapsedTime.current, true);
+			const totalTime = formatTime(currentElapsedTime, true);
 
 			const lapTimeHours = lapTimeMs / (1000 * 60 * 60);
 			const averageSpeed = (settings.current.lapDistance / 1000 / lapTimeHours).toFixed(2);
@@ -135,7 +168,7 @@ export function useStopwatch() {
 			const lap: Lap = {
 				lapTime,
 				totalTime,
-				elapsedTime: elapsedTime.current,
+				elapsedTime: currentElapsedTime, // Зберігаємо поточний час у коло
 				isFastest: false,
 				isSlowest: false,
 				averageSpeed
@@ -144,7 +177,6 @@ export function useStopwatch() {
 
 			markFastestSlowestLaps();
 
-			// Перевірка завершення для режимів дистанції та кіл
 			if (settings.current.mode !== 'time' && isFinished()) {
 				stopTimer();
 				showConfetti = true;
@@ -152,50 +184,68 @@ export function useStopwatch() {
 		}
 	}
 
-	function resetTimer() {
-		clearInterval(interval);
-		elapsedTime.current = 0;
-		timeDisplay = INITIAL_TIME_DISPLAY;
-		laps.current = [];
-		isRunning = false;
-		isRunningState.current = false;
-		showConfetti = false;
+	function markFastestSlowestLaps() {
+		if (laps.current.length < 2) return;
+		const times = laps.current.map((lap) => parseTime(lap.lapTime));
+		const fastestLapTime = Math.min(...times);
+		const slowestLapTime = Math.max(...times);
+
+		laps.current = laps.current.map((lap) => ({
+			...lap,
+			isFastest: parseTime(lap.lapTime) === fastestLapTime,
+			isSlowest: parseTime(lap.lapTime) === slowestLapTime
+		}));
 	}
 
 	function updateSettings(newSettings: StopwatchSettings) {
 		settings.current = newSettings;
 	}
 
-	onMount(() => {
-		if (elapsedTime.current > 0) {
-			timeDisplay = formatTime(elapsedTime.current, true);
-		}
+	// --- Ініціалізація ---
 
-		// Відновлюємо стан роботи таймера після оновлення сторінки
-		if (isRunningState.current && !isFinished()) {
-			startTime = Date.now() - elapsedTime.current;
-			interval = setInterval(updateTime, 10);
-			isRunning = true;
+	onMount(() => {
+		// Відновлюємо стан при завантаженні сторінки
+
+		if (isRunningState.current) {
+			// Якщо таймер був активний, коли сторінку закрили:
+			// 1. Рахуємо, скільки часу пройшло "поки нас не було" + те, що було до того
+			const now = Date.now();
+			currentElapsedTime = now - startTimeState.current + accumulatedTimeState.current;
+
+			// 2. Якщо ми вже перевищили ліміт часу (поки вкладка була закрита)
+			if (settings.current.mode === 'time' && currentElapsedTime >= settings.current.targetTime) {
+				timeDisplay = formatTime(currentElapsedTime, true);
+				stopTimer(); // Ця функція коректно збереже accumulatedTime
+				showConfetti = true;
+				isRunning = false; // Примусово оновлюємо локальний стейт
+			} else {
+				// Якщо ні, продовжуємо тікати
+				timeDisplay = formatTime(currentElapsedTime, true);
+				interval = setInterval(updateTime, 10);
+				isRunning = true;
+			}
 		} else {
+			// Якщо таймер був на паузі
+			currentElapsedTime = accumulatedTimeState.current;
+			if (currentElapsedTime > 0) {
+				timeDisplay = formatTime(currentElapsedTime, true);
+			}
 			isRunning = false;
-			isRunningState.current = false;
 		}
 	});
 
 	onDestroy(() => {
-		if (interval) {
-			clearInterval(interval);
-		}
+		if (interval) clearInterval(interval);
 	});
 
 	return {
-		// State
+		// Getters
 		get laps() {
 			return laps.current;
 		},
 		get elapsedTime() {
-			return elapsedTime.current;
-		},
+			return currentElapsedTime;
+		}, // Повертаємо локальний стейт
 		get isRunning() {
 			return isRunning;
 		},
