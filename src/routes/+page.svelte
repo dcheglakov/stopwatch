@@ -29,7 +29,7 @@
 	const isDark = new PersistedState<boolean>('stopwatch-dark-mode', false);
 
 	const handleKeydown: KeyboardHandler = (event) => {
-		if (event.key === ' ') {
+		if (event.key === ' ' || event.key === 'l') {
 			if (stopwatch.isRunning) {
 				stopwatch.addLap();
 			}
