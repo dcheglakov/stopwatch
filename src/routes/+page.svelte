@@ -6,12 +6,9 @@
 	import LucideBike from '~icons/lucide/bike';
 	import LucideSun from '~icons/lucide/sun';
 	import LucideMoon from '~icons/lucide/moon';
-	import LucideSettings from '~icons/lucide/settings';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
-	import Timer from '$lib/components/Timer.svelte';
-	import { formatTime } from '$lib';
 	import LapsTable from '$lib/components/LapsTable.svelte';
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
@@ -120,8 +117,8 @@
 	<header
 		class="flex items-center justify-between gap-5 bg-gray-100 p-2 px-6 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
 	>
-		<h1 class="flex items-center gap-2 tracking-wide uppercase">
-			<LucideBike />секундомір
+		<h1 class="flex items-center gap-2 text-lg tracking-wide uppercase">
+			<LucideBike />
 		</h1>
 		<nav class="flex items-center gap-2">
 			{#if stopwatch.showConfetti}
@@ -163,7 +160,7 @@
 		<Dialog bind:dialog>
 			<div class="grid grid-cols-1 sm:grid-cols-2">
 				<div class="p-6">
-					<h2 class="pb-6 text-3xl font-bold">Вітаємо,<br />дон Влодко!</h2>
+					<h2 class="pb-6 text-3xl font-bold">Новий рекорд!</h2>
 					<dl class="flex flex-col gap-4">
 						<div>
 							<dt class="font-medium">Середня швидкість</dt>
@@ -226,12 +223,12 @@
 		>
 		{#if canStart()}
 			<button
-				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-green-700 active:scale-97 dark:bg-green-700 dark:hover:bg-green-600"
 				onclick={stopwatch.startTimer}>{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
 			>
 		{:else if canAddLap()}
 			<button
-				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-blue-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-pink-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-pink-500 active:scale-97 disabled:opacity-50 dark:bg-pink-700 dark:hover:bg-pink-600"
 				onclick={stopwatch.addLap}
 			>
 				Коло
