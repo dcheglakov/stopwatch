@@ -160,9 +160,9 @@
 							value={targetLaps}
 							oninput={(e) =>
 								(targetLaps = validateTargetLaps(parseInt(e.currentTarget.value) || 1))}
-							min="1"
+							min="0"
 							max="1000"
-							step="1"
+							step="10"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
 					{:else if mode === 'distance'}
@@ -177,7 +177,7 @@
 							type="number"
 							value={formatDistanceInput(targetDistance)}
 							oninput={(e) => (targetDistance = parseDistanceInput(e.currentTarget.value))}
-							min="1"
+							min="0"
 							max="1000"
 							step="5"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
