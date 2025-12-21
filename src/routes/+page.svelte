@@ -21,27 +21,37 @@
 	import LapsTable from '$lib/components/LapsTable.svelte';
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
+	import { PersistedState } from 'runed';
+	import { onMount } from 'svelte';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
 
 	let isRunning = $state(false);
 	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
-	let laps = $state<Lap[]>([]);
-	let elapsedTime = $state(0);
+	const laps = new PersistedState<Lap[]>('stopwatch-laps', []);
+	const elapsedTime = new PersistedState<number>('stopwatch-elapsed-time', 0);
 	let lapsOpen = $state(false);
 	let showConfetti = $state(false);
-	let isDark = $state(false);
+	const isDark = new PersistedState<boolean>('stopwatch-dark-mode', false);
 
 	let startTime: number = 0;
 	let interval: number | undefined;
 
+	onMount(() => {
+		if (elapsedTime.current > 0) {
+			timeDisplay = formatTime(elapsedTime.current, true);
+		}
+	});
+
 	let totalAverageSpeed = $derived(
-		(laps.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.length).toFixed(2)
+		(
+			laps.current.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.current.length
+		).toFixed(2)
 	);
 
 	function startTimer() {
 		if (!isRunning) {
-			startTime = Date.now() - elapsedTime;
+			startTime = Date.now() - elapsedTime.current;
 			interval = setInterval(updateTime, 10);
 		}
 		isRunning = true;
@@ -55,15 +65,16 @@
 	}
 
 	function updateTime() {
-		elapsedTime = Date.now() - startTime;
-		timeDisplay = formatTime(elapsedTime, true);
+		elapsedTime.current = Date.now() - startTime;
+		timeDisplay = formatTime(elapsedTime.current, true);
 	}
 
 	function addLap() {
 		if (isRunning) {
-			const lapTimeMs = elapsedTime - (laps.length ? laps[0].elapsedTime : 0);
+			const lapTimeMs =
+				elapsedTime.current - (laps.current.length ? laps.current[0].elapsedTime : 0);
 			const lapTime = formatTime(lapTimeMs);
-			const totalTime = formatTime(elapsedTime, true);
+			const totalTime = formatTime(elapsedTime.current, true);
 
 			const lapTimeHours = lapTimeMs / (1000 * 60 * 60);
 			const averageSpeed = (LAP_DISTANCE_METERS / 1000 / lapTimeHours).toFixed(2);
@@ -71,15 +82,15 @@
 			const lap: Lap = {
 				lapTime,
 				totalTime,
-				elapsedTime,
+				elapsedTime: elapsedTime.current,
 				isFastest: false,
 				isSlowest: false,
 				averageSpeed
 			};
-			laps = [lap, ...laps];
+			laps.current = [lap, ...laps.current];
 
 			markFastestSlowestLaps();
-			if (laps.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
+			if (laps.current.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
 				stopTimer();
 				dialog?.showModal();
 				showConfetti = true;
@@ -88,12 +99,12 @@
 	}
 
 	function markFastestSlowestLaps() {
-		if (laps.length < 2) return;
+		if (laps.current.length < 2) return;
 
-		let fastestLapTime = Math.min(...laps.map((lap) => parseTime(lap.lapTime)));
-		let slowestLapTime = Math.max(...laps.map((lap) => parseTime(lap.lapTime)));
+		let fastestLapTime = Math.min(...laps.current.map((lap) => parseTime(lap.lapTime)));
+		let slowestLapTime = Math.max(...laps.current.map((lap) => parseTime(lap.lapTime)));
 
-		laps = laps.map((lap) => ({
+		laps.current = laps.current.map((lap) => ({
 			...lap,
 			isFastest: parseTime(lap.lapTime) === fastestLapTime,
 			isSlowest: parseTime(lap.lapTime) === slowestLapTime
@@ -102,9 +113,9 @@
 
 	function resetTimer() {
 		clearInterval(interval);
-		elapsedTime = 0;
+		elapsedTime.current = 0;
 		timeDisplay = INITIAL_TIME_DISPLAY;
-		laps = [];
+		laps.current = [];
 		isRunning = false;
 		showConfetti = false;
 	}
@@ -126,27 +137,27 @@
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
-<div class="{isDark ? 'dark' : ''} contents font-mono">
-	<header class="flex items-center justify-between gap-5 bg-gray-3 p-2 px-6 text-gray-11">
-		<h1 class="flex items-center gap-2 uppercase tracking-wide">
+<div class="{isDark.current ? 'dark' : ''} contents font-mono">
+	<header class="bg-gray-3 text-gray-11 flex items-center justify-between gap-5 p-2 px-6">
+		<h1 class="flex items-center gap-2 tracking-wide uppercase">
 			<LucideBike />секундомір
 		</h1>
 		<nav class="flex items-center gap-2">
 			{#if showConfetti}
 				<button
-					class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
+					class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
 					onclick={() => dialog?.showModal()}><LucideTrophy /></button
 				>
 			{/if}
 			<button
-				class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
+				class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
 				onclick={() => (lapsOpen = !lapsOpen)}><LucideClipboardList /></button
 			>
 			<button
-				class="rounded-lg bg-gray-5 p-2 text-gray-11 hover:bg-gray-6"
-				onclick={() => (isDark = !isDark)}
+				class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
+				onclick={() => (isDark.current = !isDark.current)}
 			>
-				{#if isDark}
+				{#if isDark.current}
 					<LucideMoon />
 				{:else}
 					<LucideSun />
@@ -156,7 +167,7 @@
 	</header>
 
 	<Sidebar bind:isOpen={lapsOpen}>
-		<LapsTable {laps} />
+		<LapsTable laps={laps.current} />
 	</Sidebar>
 
 	<main class="bg-gray-1">
@@ -176,7 +187,7 @@
 						</div>
 						<div>
 							<dt class="font-medium">Загальний час</dt>
-							<dd class="text-2xl font-semibold">{formatTime(elapsedTime, true)}</dd>
+							<dd class="text-2xl font-semibold">{formatTime(elapsedTime.current, true)}</dd>
 						</div>
 						<div>
 							<dt class="font-medium">Дистанція</dt>
@@ -193,44 +204,47 @@
 		</Dialog>
 		<StatsGrid>
 			<StatTitle
-				title="Коло ({laps.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
-				value={String(laps.length).padStart(3, '0')}
+				title="Коло ({laps.current.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
+				value={String(laps.current.length).padStart(3, '0')}
 			/>
-			<StatTitle title="Час на коло (сек)" value={laps.length ? laps[0].lapTime : '00.00'} />
+			<StatTitle
+				title="Час на коло (сек)"
+				value={laps.current.length ? laps.current[0].lapTime : '00.00'}
+			/>
 			<Timer {timeDisplay} />
 		</StatsGrid>
 	</main>
 
-	<footer class="relative flex h-20 items-center justify-between gap-2 bg-gray-3 px-4">
+	<footer class="bg-gray-3 relative flex h-20 items-center justify-between gap-2 px-4">
 		<progress
 			id="file"
 			max="100"
-			value={(laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
+			value={(laps.current.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
 			class="absolute -top-2 left-0 h-2 w-full"
-			>{(laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
+			>{(laps.current.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
 		>
 		<button
-			class="inline-flex items-center justify-center rounded-lg bg-gray-9 p-3 text-lg text-gray-1 hover:bg-gray-10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-9"
+			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
 			disabled={!isRunning}
 			onclick={stopTimer}><LucidePause /></button
 		>
-		{#if !isRunning && laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		{#if !isRunning && laps.current.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
-				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-success-9 px-4 py-3 uppercase tracking-wide text-success-1 hover:bg-success-10"
-				onclick={startTimer}>{elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+				class="bg-success-9 text-success-1 hover:bg-success-10 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase"
+				onclick={startTimer}>{elapsedTime.current > 0 ? 'Продовжити' : 'Старт'}</button
 			>
-		{:else if laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		{:else if laps.current.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
-				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-brand-10 px-4 py-3 uppercase tracking-wide text-brand-1 hover:bg-brand-11 disabled:opacity-50"
+				class="bg-brand-10 text-brand-1 hover:bg-brand-11 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase disabled:opacity-50"
 				onclick={addLap}
 			>
 				Коло
 			</button>
 		{/if}
 		<button
-			class="inline-flex items-center justify-center rounded-lg bg-gray-9 p-3 text-lg text-gray-1 hover:bg-gray-10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-9"
+			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
 			onclick={resetTimer}
-			disabled={isRunning || elapsedTime === 0}><LucideTimerReset /></button
+			disabled={isRunning || elapsedTime.current === 0}><LucideTimerReset /></button
 		>
 	</footer>
 </div>
