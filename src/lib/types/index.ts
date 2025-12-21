@@ -6,3 +6,11 @@ export interface Lap {
 	isSlowest: boolean;
 	averageSpeed: string;
 }
+
+export type {
+	ClickHandler,
+	KeyboardHandler,
+	SubmitHandler,
+	InputHandler,
+	ChangeHandler
+} from './events';

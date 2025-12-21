@@ -14,29 +14,40 @@
 	import LapsTable from '$lib/components/LapsTable.svelte';
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
+	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
+	let confirmDialog = $state<HTMLDialogElement | null>(null);
 
 	const stopwatch = useStopwatch();
 	let lapsOpen = $state(false);
 	const isDark = new PersistedState<boolean>('stopwatch-dark-mode', false);
 
-	function handleKeydown(event: KeyboardEvent) {
+	const handleKeydown: KeyboardHandler = (event) => {
 		if (event.key === ' ') {
 			if (stopwatch.isRunning) {
 				stopwatch.addLap();
 			}
 			event.preventDefault();
 		}
-	}
+	};
 
 	$effect(() => {
 		if (stopwatch.isFinished && dialog) {
 			dialog.showModal();
 		}
 	});
+
+	const handleResetClick: ClickHandler = () => {
+		confirmDialog?.showModal();
+	};
+
+	const confirmReset = () => {
+		stopwatch.resetTimer();
+	};
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -152,10 +163,19 @@
 		{/if}
 		<button
 			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
-			onclick={stopwatch.resetTimer}
+			onclick={handleResetClick}
 			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}><LucideTimerReset /></button
 		>
 	</footer>
+
+	<ConfirmDialog
+		bind:dialog={confirmDialog}
+		title="Скинути таймер?"
+		message="Всі дані про кола та час будуть втрачені. Ця дія незворотня."
+		confirmText="Скинути"
+		cancelText="Скасувати"
+		onconfirm={confirmReset}
+	/>
 </div>
 
 <style>
