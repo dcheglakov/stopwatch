@@ -6,9 +6,14 @@
 	let { title, value }: Props = $props();
 </script>
 
-<div class="rounded-3xl bg-gray-100 p-6 lg:px-6 dark:bg-gray-950">
+<div class="px-4 py-2 text-center lg:px-6">
 	<h2 class="font-light tracking-wider text-gray-600 uppercase dark:text-gray-400">{title}</h2>
-	<p class={['font-bold text-gray-900 dark:text-gray-100', 'text-4xl md:text-6xl']}>
+	<p
+		class={[
+			'flex items-end justify-center font-bold text-gray-900 dark:text-gray-100',
+			'text-9xl md:text-[24rem]'
+		]}
+	>
 		{value}
 	</p>
 </div>

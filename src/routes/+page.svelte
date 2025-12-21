@@ -20,6 +20,9 @@
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
 	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
+	import { formatDuration, intervalToDuration } from 'date-fns';
+	import { uk } from 'date-fns/locale';
+	import LapTimeTile from '$lib/components/LapTimeTile.svelte';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
 	let confirmDialog = $state<HTMLDialogElement | null>(null);
@@ -51,27 +54,62 @@
 		stopwatch.resetTimer();
 	};
 
-	// Отримання заголовка і значення залежно від режиму
-	const modeTitle = $derived(() => {
-		switch (stopwatch.settings.mode) {
-			case 'distance':
-				return 'Дистанція';
-			case 'laps':
-				return 'Кола';
-			case 'time':
-				return 'Час';
+	// Форматування часу у людський формат
+	function formatHumanTime(ms: number): string {
+		if (ms === 0) return '0 хв';
+
+		const duration = intervalToDuration({ start: 0, end: ms });
+
+		// Якщо менше хвилини
+		if (!duration.hours && !duration.minutes) {
+			return formatDuration(duration, {
+				format: ['seconds'],
+				locale: uk
+			});
 		}
+
+		// Якщо менше години
+		if (!duration.hours) {
+			return formatDuration(duration, {
+				format: ['minutes', 'seconds'],
+				locale: uk
+			});
+		}
+
+		// Якщо є години
+		return formatDuration(duration, {
+			format: ['hours', 'minutes'],
+			locale: uk
+		});
+	}
+
+	// Завжди показуємо три метрики
+	const lapsDisplay = $derived(() => {
+		if (stopwatch.settings.mode === 'laps') {
+			return `${stopwatch.laps.length} / ${stopwatch.targetLapsCount}`;
+		}
+		return String(stopwatch.laps.length);
 	});
 
-	const modeValue = $derived(() => {
-		switch (stopwatch.settings.mode) {
-			case 'distance':
-				return `${(stopwatch.currentDistance / 1000).toFixed(1)} / ${(stopwatch.totalDistance / 1000).toFixed(1)} км`;
-			case 'laps':
-				return `${stopwatch.laps.length} / ${stopwatch.targetLapsCount}`;
-			case 'time':
-				return formatTime(stopwatch.elapsedTime, true);
+	const distanceDisplay = $derived(() => {
+		const currentKm = stopwatch.currentDistance / 1000;
+		// Якщо дистанція ціла, показуємо без дробової частини
+		const current = currentKm % 1 === 0 ? currentKm.toFixed(0) : currentKm.toFixed(2);
+
+		if (stopwatch.settings.mode === 'distance') {
+			const targetKm = stopwatch.totalDistance / 1000;
+			const target = targetKm % 1 === 0 ? targetKm.toFixed(0) : targetKm.toFixed(2);
+			return `${current} / ${target} км`;
 		}
+		return `${current} км`;
+	});
+
+	const timeDisplay = $derived(() => {
+		if (stopwatch.settings.mode === 'time') {
+			const remaining = stopwatch.settings.targetTime - stopwatch.elapsedTime;
+			return remaining > 0 ? formatHumanTime(remaining) : '0 хв';
+		}
+		return formatHumanTime(stopwatch.elapsedTime);
 	});
 
 	const canAddLap = $derived(() => {
@@ -170,11 +208,18 @@
 			</div>
 		</Dialog>
 		<StatsGrid>
-			<StatTitle title={modeTitle()} value={modeValue()} />
-			<StatTitle
+			<LapTimeTile
 				title="Час на коло (сек)"
 				value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
 			/>
+			<div class="grid grid-flow-col auto-rows-fr gap-4 px-6">
+				<StatTitle title="Кола" value={lapsDisplay()} />
+				<StatTitle title="Дистанція" value={distanceDisplay()} />
+				<StatTitle
+					title={stopwatch.settings.mode === 'time' ? 'Залишилось часу' : 'Час'}
+					value={timeDisplay()}
+				/>
+			</div>
 			<Timer timeDisplay={stopwatch.timeDisplay} />
 		</StatsGrid>
 	</main>
