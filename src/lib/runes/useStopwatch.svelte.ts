@@ -17,13 +17,15 @@ export function useStopwatch() {
 	let startTime: number = 0;
 	let interval: number | undefined;
 
-	const totalAverageSpeed = $derived(
-		laps.current.length > 0
-			? (
-					laps.current.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.current.length
-				).toFixed(2)
-			: '0.00'
-	);
+	// Середня швидкість на основі загального часу та дистанції
+	const totalAverageSpeed = $derived(() => {
+		if (elapsedTime.current === 0 || laps.current.length === 0) {
+			return '0.00';
+		}
+		const totalDistanceKm = currentDistance / 1000;
+		const totalTimeHours = elapsedTime.current / (1000 * 60 * 60);
+		return (totalDistanceKm / totalTimeHours).toFixed(2);
+	});
 
 	// Обчислення залежно від режиму
 	const targetLapsCount = $derived(() => {
@@ -190,7 +192,7 @@ export function useStopwatch() {
 
 		// Derived
 		get totalAverageSpeed() {
-			return totalAverageSpeed;
+			return totalAverageSpeed();
 		},
 		get isFinished() {
 			return isFinished();
