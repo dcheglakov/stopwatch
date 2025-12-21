@@ -13,9 +13,9 @@ export interface StopwatchSettings {
 }
 
 export const DEFAULT_SETTINGS: StopwatchSettings = {
-	mode: 'distance',
-	targetTime: 3600000, // 1 година
+	mode: 'time',
+	targetTime: 43200000, // 12 година
 	targetLaps: 100,
-	targetDistance: 250000, // 250 км
+	targetDistance: 100000, // 100 км
 	lapDistance: 250 // 250 метрів
 };

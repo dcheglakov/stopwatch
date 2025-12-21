@@ -11,7 +11,7 @@
 	<p
 		class={[
 			'flex items-end justify-center font-bold text-gray-900 dark:text-gray-100',
-			'text-9xl md:text-[24rem]'
+			'text-9xl md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem]'
 		]}
 	>
 		{value}

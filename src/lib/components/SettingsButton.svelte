@@ -12,21 +12,21 @@
 	let { settings, onSettingsChange, disabled = false }: Props = $props();
 
 	let mode = $state<TrackMode>('distance');
-	let lapDistance = $state(250);
-	let targetTime = $state(3600000);
-	let targetLaps = $state(100);
-	let targetDistance = $state(250000);
+	let lapDistance = $derived(settings.lapDistance);
+	let targetTime = $derived(settings.targetTime);
+	let targetLaps = $derived(settings.targetLaps);
+	let targetDistance = $derived(settings.targetDistance);
 
 	// Оновлюємо локальний стан коли settings змінюються ззовні
 	$effect(() => {
 		mode = settings.mode;
-		lapDistance = settings.lapDistance;
-		targetTime = settings.targetTime;
-		targetLaps = settings.targetLaps;
-		targetDistance = settings.targetDistance;
+		lapDistance = validateLapDistance(settings.lapDistance);
+		targetTime = parseTimeInput(formatTimeInput(settings.targetTime));
+		targetLaps = validateTargetLaps(settings.targetLaps);
+		targetDistance = parseDistanceInput(formatDistanceInput(settings.targetDistance));
 	});
 
-	function handleSave() {
+	$effect(() => {
 		onSettingsChange({
 			mode,
 			lapDistance,
@@ -34,7 +34,7 @@
 			targetLaps,
 			targetDistance
 		});
-	}
+	});
 
 	function formatTimeInput(ms: number): string {
 		const hours = Math.floor(ms / 3600000);
@@ -42,7 +42,7 @@
 	}
 
 	function parseTimeInput(value: string): number {
-		const hours = parseInt(value) || 0;
+		const hours = Math.max(1, parseInt(value) || 1);
 		return hours * 3600000;
 	}
 
@@ -52,8 +52,16 @@
 	}
 
 	function parseDistanceInput(value: string): number {
-		const km = parseInt(value) || 0;
+		const km = Math.max(1, parseInt(value) || 1);
 		return km * 1000;
+	}
+
+	function validateLapDistance(value: number): number {
+		return Math.max(100, Math.min(10000, value));
+	}
+
+	function validateTargetLaps(value: number): number {
+		return Math.max(1, Math.min(1000, value));
 	}
 </script>
 
@@ -80,7 +88,10 @@
 						id="lap-distance"
 						type="number"
 						bind:value={lapDistance}
+						oninput={(e) =>
+							(lapDistance = validateLapDistance(parseInt(e.currentTarget.value) || 100))}
 						min="100"
+						max="10000"
 						step="50"
 						class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 					/>
@@ -135,6 +146,7 @@
 							value={formatTimeInput(targetTime)}
 							oninput={(e) => (targetTime = parseTimeInput(e.currentTarget.value))}
 							min="1"
+							max="24"
 							step="1"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
@@ -146,7 +158,10 @@
 							id="target-laps"
 							type="number"
 							bind:value={targetLaps}
+							oninput={(e) =>
+								(targetLaps = validateTargetLaps(parseInt(e.currentTarget.value) || 1))}
 							min="1"
+							max="1000"
 							step="1"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
@@ -163,25 +178,11 @@
 							value={formatDistanceInput(targetDistance)}
 							oninput={(e) => (targetDistance = parseDistanceInput(e.currentTarget.value))}
 							min="1"
+							max="1000"
 							step="5"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
 					{/if}
-
-					<!-- Кнопки -->
-					<div class="flex justify-end gap-3 pt-2">
-						<Popover.Close
-							class="rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-						>
-							Скасувати
-						</Popover.Close>
-						<Popover.Close
-							onclick={handleSave}
-							class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-						>
-							Зберегти
-						</Popover.Close>
-					</div>
 				</div>
 			</div>
 		</Popover.Content>

@@ -212,15 +212,18 @@
 				title="Час на коло (сек)"
 				value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
 			/>
-			<div class="grid grid-flow-col auto-rows-fr gap-4 px-6">
+			<div
+				class="container mx-auto grid grid-cols-1 gap-0.5 overflow-hidden rounded-2xl md:grid-cols-2"
+			>
 				<StatTitle title="Кола" value={lapsDisplay()} />
 				<StatTitle title="Дистанція" value={distanceDisplay()} />
 				<StatTitle
 					title={stopwatch.settings.mode === 'time' ? 'Залишилось часу' : 'Час'}
 					value={timeDisplay()}
 				/>
+				<StatTitle title="Секундомір" value={stopwatch.timeDisplay} />
 			</div>
-			<Timer timeDisplay={stopwatch.timeDisplay} />
+			<!-- <Timer timeDisplay={stopwatch.timeDisplay} /> -->
 		</StatsGrid>
 	</main>
 
