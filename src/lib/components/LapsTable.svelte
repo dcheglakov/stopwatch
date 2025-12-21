@@ -37,7 +37,7 @@
 						? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
 						: lap.isSlowest
 							? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-							: 'dark:even:bg-gray-750 bg-white text-gray-700 even:bg-gray-50 dark:bg-gray-800 dark:text-gray-300'}
+							: 'bg-white text-gray-700 even:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:even:bg-gray-700'}
 				>
 					{@render td(laps.length - index)}
 					{@render td(lap.lapTime)}
