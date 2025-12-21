@@ -10,124 +10,33 @@
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import StatTitle from '$lib/components/StatTitle.svelte';
 	import Timer from '$lib/components/Timer.svelte';
-	import {
-		formatTime,
-		INITIAL_TIME_DISPLAY,
-		LAP_DISTANCE_METERS,
-		parseTime,
-		TOTAL_DISTANCE_METERS
-	} from '$lib';
-	import type { Lap } from '$lib/types';
+	import { formatTime, LAP_DISTANCE_METERS, TOTAL_DISTANCE_METERS } from '$lib';
 	import LapsTable from '$lib/components/LapsTable.svelte';
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
 	import { PersistedState } from 'runed';
-	import { onMount } from 'svelte';
+	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
 
-	let isRunning = $state(false);
-	let timeDisplay = $state(INITIAL_TIME_DISPLAY);
-	const laps = new PersistedState<Lap[]>('stopwatch-laps', []);
-	const elapsedTime = new PersistedState<number>('stopwatch-elapsed-time', 0);
+	const stopwatch = useStopwatch();
 	let lapsOpen = $state(false);
-	let showConfetti = $state(false);
 	const isDark = new PersistedState<boolean>('stopwatch-dark-mode', false);
-
-	let startTime: number = 0;
-	let interval: number | undefined;
-
-	onMount(() => {
-		if (elapsedTime.current > 0) {
-			timeDisplay = formatTime(elapsedTime.current, true);
-		}
-	});
-
-	let totalAverageSpeed = $derived(
-		(
-			laps.current.reduce((acc, lap) => acc + Number(lap.averageSpeed), 0) / laps.current.length
-		).toFixed(2)
-	);
-
-	function startTimer() {
-		if (!isRunning) {
-			startTime = Date.now() - elapsedTime.current;
-			interval = setInterval(updateTime, 10);
-		}
-		isRunning = true;
-	}
-
-	function stopTimer() {
-		if (isRunning) {
-			clearInterval(interval);
-		}
-		isRunning = false;
-	}
-
-	function updateTime() {
-		elapsedTime.current = Date.now() - startTime;
-		timeDisplay = formatTime(elapsedTime.current, true);
-	}
-
-	function addLap() {
-		if (isRunning) {
-			const lapTimeMs =
-				elapsedTime.current - (laps.current.length ? laps.current[0].elapsedTime : 0);
-			const lapTime = formatTime(lapTimeMs);
-			const totalTime = formatTime(elapsedTime.current, true);
-
-			const lapTimeHours = lapTimeMs / (1000 * 60 * 60);
-			const averageSpeed = (LAP_DISTANCE_METERS / 1000 / lapTimeHours).toFixed(2);
-
-			const lap: Lap = {
-				lapTime,
-				totalTime,
-				elapsedTime: elapsedTime.current,
-				isFastest: false,
-				isSlowest: false,
-				averageSpeed
-			};
-			laps.current = [lap, ...laps.current];
-
-			markFastestSlowestLaps();
-			if (laps.current.length === TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS) {
-				stopTimer();
-				dialog?.showModal();
-				showConfetti = true;
-			}
-		}
-	}
-
-	function markFastestSlowestLaps() {
-		if (laps.current.length < 2) return;
-
-		let fastestLapTime = Math.min(...laps.current.map((lap) => parseTime(lap.lapTime)));
-		let slowestLapTime = Math.max(...laps.current.map((lap) => parseTime(lap.lapTime)));
-
-		laps.current = laps.current.map((lap) => ({
-			...lap,
-			isFastest: parseTime(lap.lapTime) === fastestLapTime,
-			isSlowest: parseTime(lap.lapTime) === slowestLapTime
-		}));
-	}
-
-	function resetTimer() {
-		clearInterval(interval);
-		elapsedTime.current = 0;
-		timeDisplay = INITIAL_TIME_DISPLAY;
-		laps.current = [];
-		isRunning = false;
-		showConfetti = false;
-	}
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === ' ') {
-			if (isRunning) {
-				addLap();
+			if (stopwatch.isRunning) {
+				stopwatch.addLap();
 			}
 			event.preventDefault();
 		}
 	}
+
+	$effect(() => {
+		if (stopwatch.isFinished && dialog) {
+			dialog.showModal();
+		}
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -143,7 +52,7 @@
 			<LucideBike />секундомір
 		</h1>
 		<nav class="flex items-center gap-2">
-			{#if showConfetti}
+			{#if stopwatch.showConfetti}
 				<button
 					class="bg-gray-5 text-gray-11 hover:bg-gray-6 rounded-lg p-2"
 					onclick={() => dialog?.showModal()}><LucideTrophy /></button
@@ -167,11 +76,11 @@
 	</header>
 
 	<Sidebar bind:isOpen={lapsOpen}>
-		<LapsTable laps={laps.current} />
+		<LapsTable laps={stopwatch.laps} />
 	</Sidebar>
 
 	<main class="bg-gray-1">
-		{#if showConfetti}
+		{#if stopwatch.showConfetti}
 			<Confetti />
 		{/if}
 		<Dialog bind:dialog>
@@ -182,12 +91,12 @@
 						<div>
 							<dt class="font-medium">Середня швидкість</dt>
 							<dd class="text-2xl font-semibold">
-								{totalAverageSpeed} км/год
+								{stopwatch.totalAverageSpeed} км/год
 							</dd>
 						</div>
 						<div>
 							<dt class="font-medium">Загальний час</dt>
-							<dd class="text-2xl font-semibold">{formatTime(elapsedTime.current, true)}</dd>
+							<dd class="text-2xl font-semibold">{formatTime(stopwatch.elapsedTime, true)}</dd>
 						</div>
 						<div>
 							<dt class="font-medium">Дистанція</dt>
@@ -204,14 +113,14 @@
 		</Dialog>
 		<StatsGrid>
 			<StatTitle
-				title="Коло ({laps.current.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
-				value={String(laps.current.length).padStart(3, '0')}
+				title="Коло ({stopwatch.laps.length}/{TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS})"
+				value={String(stopwatch.laps.length).padStart(3, '0')}
 			/>
 			<StatTitle
 				title="Час на коло (сек)"
-				value={laps.current.length ? laps.current[0].lapTime : '00.00'}
+				value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
 			/>
-			<Timer {timeDisplay} />
+			<Timer timeDisplay={stopwatch.timeDisplay} />
 		</StatsGrid>
 	</main>
 
@@ -219,32 +128,32 @@
 		<progress
 			id="file"
 			max="100"
-			value={(laps.current.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
+			value={(stopwatch.laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}
 			class="absolute -top-2 left-0 h-2 w-full"
-			>{(laps.current.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
+			>{(stopwatch.laps.length * 100) / (TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS)}%</progress
 		>
 		<button
 			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
-			disabled={!isRunning}
-			onclick={stopTimer}><LucidePause /></button
+			disabled={!stopwatch.isRunning}
+			onclick={stopwatch.stopTimer}><LucidePause /></button
 		>
-		{#if !isRunning && laps.current.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		{#if !stopwatch.isRunning && stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
 				class="bg-success-9 text-success-1 hover:bg-success-10 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase"
-				onclick={startTimer}>{elapsedTime.current > 0 ? 'Продовжити' : 'Старт'}</button
+				onclick={stopwatch.startTimer}>{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
 			>
-		{:else if laps.current.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
+		{:else if stopwatch.laps.length < TOTAL_DISTANCE_METERS / LAP_DISTANCE_METERS}
 			<button
 				class="bg-brand-10 text-brand-1 hover:bg-brand-11 inline-flex w-full max-w-48 items-center justify-center rounded-full px-4 py-3 tracking-wide uppercase disabled:opacity-50"
-				onclick={addLap}
+				onclick={stopwatch.addLap}
 			>
 				Коло
 			</button>
 		{/if}
 		<button
 			class="bg-gray-9 text-gray-1 hover:bg-gray-10 disabled:hover:bg-gray-9 inline-flex items-center justify-center rounded-lg p-3 text-lg disabled:cursor-not-allowed disabled:opacity-50"
-			onclick={resetTimer}
-			disabled={isRunning || elapsedTime.current === 0}><LucideTimerReset /></button
+			onclick={stopwatch.resetTimer}
+			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}><LucideTimerReset /></button
 		>
 	</footer>
 </div>
