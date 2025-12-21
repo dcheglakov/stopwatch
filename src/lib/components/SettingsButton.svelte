@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
+	import LucideSettings from '~icons/lucide/settings';
 	import type { StopwatchSettings, TrackMode } from '$lib/types/settings';
 
 	interface Props {
@@ -49,9 +50,9 @@
 <Popover.Root>
 	<Popover.Trigger
 		{disabled}
-		class="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+		class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 	>
-		Налаштування
+		<LucideSettings />
 	</Popover.Trigger>
 	<Popover.Portal>
 		<Popover.Content
@@ -59,23 +60,10 @@
 			sideOffset={8}
 		>
 			<div class="space-y-4">
-				<h3 class="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
-					Налаштування секундоміра
-				</h3>
-
-				<!-- Довжина кола -->
-				<div class="space-y-2">
-					<label for="lap-distance" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-						Довжина кола (метри)
-					</label>
-					<input
-						id="lap-distance"
-						type="number"
-						bind:value={lapDistance}
-						min="100"
-						step="50"
-						class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
-					/>
+				<div>
+					<h3 class="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
+						Налаштування секундоміра
+					</h3>
 				</div>
 
 				<!-- Режим роботи -->
@@ -115,6 +103,21 @@
 					</div>
 				</div>
 
+				<!-- Довжина кола -->
+				<div class="space-y-2">
+					<label for="lap-distance" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+						Довжина кола (метри)
+					</label>
+					<input
+						id="lap-distance"
+						type="number"
+						bind:value={lapDistance}
+						min="100"
+						step="50"
+						class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
+					/>
+				</div>
+
 				<!-- Налаштування для обраного режиму -->
 				{#if mode === 'time'}
 					<div class="space-y-2">
@@ -147,10 +150,7 @@
 					</div>
 				{:else if mode === 'distance'}
 					<div class="space-y-2">
-						<label
-							for="target-distance"
-							class="text-sm font-medium text-gray-700 dark:text-gray-300"
-						>
+						<label for="target-distance" class="text-sm font-medium text-gray-700 dark:text-gray-300">
 							Цільова дистанція (метри)
 						</label>
 						<input

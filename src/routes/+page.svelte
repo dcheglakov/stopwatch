@@ -16,7 +16,7 @@
 	import Confetti from '$lib/components/Confetti.svelte';
 	import Dialog from '$lib/components/Dialog.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import SettingsPopover from '$lib/components/SettingsPopover.svelte';
+	import SettingsButton from '$lib/components/SettingsButton.svelte';
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
 	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
@@ -113,6 +113,11 @@
 				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (lapsOpen = !lapsOpen)}><LucideClipboardList /></button
 			>
+			<SettingsButton
+				settings={stopwatch.settings}
+				onSettingsChange={stopwatch.updateSettings}
+				disabled={stopwatch.isRunning || stopwatch.elapsedTime > 0}
+			/>
 			<button
 				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (isDark.current = !isDark.current)}
@@ -183,18 +188,11 @@
 			value={stopwatch.progressPercentage}
 			class="absolute -top-2 left-0 h-2 w-full">{stopwatch.progressPercentage}%</progress
 		>
-		<div class="flex gap-2">
-			<button
-				class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
-				disabled={!stopwatch.isRunning}
-				onclick={stopwatch.stopTimer}><LucidePause /></button
-			>
-			<SettingsPopover
-				settings={stopwatch.settings}
-				onSettingsChange={stopwatch.updateSettings}
-				disabled={stopwatch.isRunning || stopwatch.elapsedTime > 0}
-			/>
-		</div>
+		<button
+			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
+			disabled={!stopwatch.isRunning}
+			onclick={stopwatch.stopTimer}><LucidePause /></button
+		>
 		{#if canStart()}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
