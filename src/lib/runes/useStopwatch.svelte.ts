@@ -28,6 +28,14 @@ export function useStopwatch() {
 		return (totalDistanceKm / totalTimeHours).toFixed(2);
 	});
 
+	// Фіксована швидкість останнього кола
+	const lastLapSpeed = $derived(() => {
+		if (laps.current.length === 0) {
+			return '0.00';
+		}
+		return laps.current[0].averageSpeed;
+	});
+
 	// Обчислення залежно від режиму
 	const targetLapsCount = $derived(() => {
 		const s = settings.current;
@@ -222,6 +230,9 @@ export function useStopwatch() {
 		},
 		get progressPercentage() {
 			return progressPercentage();
+		},
+		get lastLapSpeed() {
+			return lastLapSpeed();
 		},
 
 		// Actions

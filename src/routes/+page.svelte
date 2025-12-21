@@ -20,6 +20,7 @@
 	import { formatDuration, intervalToDuration } from 'date-fns';
 	import { uk } from 'date-fns/locale';
 	import LapTimeTile from '$lib/components/LapTimeTile.svelte';
+	import Timer from '$lib/components/Timer.svelte';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
 	let confirmDialog = $state<HTMLDialogElement | null>(null);
@@ -219,9 +220,9 @@
 					title={stopwatch.settings.mode === 'time' ? 'Залишилось часу' : 'Час'}
 					value={timeDisplay()}
 				/>
-				<StatTitle title="Секундомір" value={stopwatch.timeDisplay} />
+				<StatTitle title="Швидкість кола" value={`${stopwatch.lastLapSpeed} км/год`} />
 			</div>
-			<!-- <Timer timeDisplay={stopwatch.timeDisplay} /> -->
+			<Timer timeDisplay={stopwatch.timeDisplay} />
 		</StatsGrid>
 	</main>
 
