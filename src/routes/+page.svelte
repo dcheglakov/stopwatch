@@ -1,4 +1,5 @@
 <script lang="ts">
+	import helpMarko from '$lib/assets/help_marko.webp';
 	import LucideTrophy from '~icons/lucide/trophy';
 	import LucideTimerReset from '~icons/lucide/timer-reset';
 	import LucidePause from '~icons/lucide/pause';
@@ -128,7 +129,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>Секундомір на треку</title>
+	<title>Elevidys для Марчика</title>
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
@@ -137,10 +138,10 @@
 		class="flex items-center justify-between gap-5 bg-gray-100 p-2 px-6 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
 	>
 		<h1 class="flex items-center gap-2 text-lg tracking-wide uppercase">
-			<LucideBike />
+			<LucideBike /> Elevidys для Марчика
 		</h1>
 		<nav class="flex items-center gap-2">
-			{#if stopwatch.showConfetti}
+			{#if stopwatch.isFinished}
 				<button
 					class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 					onclick={() => dialog?.showModal()}><LucideTrophy /></button
@@ -173,13 +174,10 @@
 	</Sidebar>
 
 	<main class="bg-white dark:bg-gray-900">
-		{#if stopwatch.showConfetti}
-			<Confetti />
-		{/if}
 		<Dialog bind:dialog>
 			<div class="grid grid-cols-1 sm:grid-cols-2">
 				<div class="p-6">
-					<h2 class="pb-6 text-3xl font-bold">Новий рекорд!</h2>
+					<h2 class="pb-6 text-3xl font-bold">Elevidys для Марчика</h2>
 					<dl class="flex flex-col gap-4">
 						<div>
 							<dt class="font-medium">Середня швидкість</dt>
@@ -203,7 +201,7 @@
 						</div>
 					</dl>
 				</div>
-				<img src="/images/don.jpg" alt="Logo" class="hidden h-auto w-full sm:block" />
+				<img src={helpMarko} alt="Logo" class="hidden h-auto w-full sm:block" />
 			</div>
 		</Dialog>
 		<StatsGrid>
