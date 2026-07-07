@@ -1,8 +1,7 @@
 <script lang="ts">
-	import helpMarko from '$lib/assets/help_marko.webp';
 	import LucideTrophy from '~icons/lucide/trophy';
 	import LucideTimerReset from '~icons/lucide/timer-reset';
-	import LucideCircleStop from '~icons/lucide/circle-stop';
+	import LucideSquare from '~icons/lucide/square';
 	import LucidePause from '~icons/lucide/pause';
 	import LucideCircleHelp from '~icons/lucide/circle-help';
 	import MakiRacetrackCycling from '~icons/maki/racetrack-cycling';
@@ -17,6 +16,7 @@
 	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
 	import LapTimeTile from '$lib/components/LapTimeTile.svelte';
 	import Timer from '$lib/components/Timer.svelte';
+	import { formatTime } from '$lib';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
 	let guideDialog = $state<HTMLDialogElement | null>(null);
@@ -51,6 +51,23 @@
 			distance: 'За дистанцією'
 		}[stopwatch.settings.mode]
 	);
+	const distanceKm = $derived((stopwatch.laps.length * stopwatch.settings.lapDistance) / 1000);
+	const averageSpeed = $derived(() => {
+		const hours = stopwatch.elapsedTime / 3600000;
+		return hours > 0 ? (distanceKm / hours).toFixed(2) : '0.00';
+	});
+	const bestLap = $derived(() => {
+		if (!stopwatch.laps.length) return '—';
+		const lapTimes = stopwatch.laps.map(
+			(lap, index) => lap.elapsedTime - (stopwatch.laps[index + 1]?.elapsedTime ?? 0)
+		);
+		return formatTime(Math.min(...lapTimes));
+	});
+
+	function startNewRide() {
+		stopwatch.resetTimer();
+		dialog?.close();
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -103,12 +120,51 @@
 		class="grid h-full w-full grid-cols-1 content-center overflow-hidden bg-white dark:bg-gray-900"
 	>
 		<Dialog bind:dialog>
-			<div class="grid grid-cols-1 sm:grid-cols-2">
-				<div class="p-6">
-					<h2 class="pb-4 text-3xl font-bold">Заїзд завершено</h2>
-					<p>Таймер зупинено.</p>
+			<div class="space-y-6 p-6">
+				<div>
+					<h2 class="pb-2 text-3xl font-bold">Заїзд завершено</h2>
+					<p class="text-gray-600 dark:text-gray-300">Підсумок заїзду</p>
 				</div>
-				<img src={helpMarko} alt="Logo" class="hidden h-auto w-full sm:block" />
+				<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Час</dt>
+						<dd class="text-xl font-semibold">{stopwatch.timeDisplay}</dd>
+					</div>
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Дистанція</dt>
+						<dd class="text-xl font-semibold">{distanceKm.toFixed(2)} км</dd>
+					</div>
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Кола</dt>
+						<dd class="text-xl font-semibold">{stopwatch.laps.length}</dd>
+					</div>
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Середня швидкість</dt>
+						<dd class="text-xl font-semibold">{averageSpeed()} км/год</dd>
+					</div>
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Найкраще коло</dt>
+						<dd class="text-xl font-semibold">{bestLap()}</dd>
+					</div>
+					<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-900">
+						<dt class="text-sm text-gray-600 dark:text-gray-400">Режим</dt>
+						<dd class="text-xl font-semibold">{modeLabel}</dd>
+					</div>
+				</dl>
+				<div class="flex justify-end gap-3">
+					<button
+						class="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+						onclick={() => dialog?.close()}
+					>
+						Закрити
+					</button>
+					<button
+						class="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+						onclick={startNewRide}
+					>
+						Почати новий заїзд
+					</button>
+				</div>
 			</div>
 		</Dialog>
 
@@ -172,11 +228,12 @@
 				Коло
 			</button>
 		{/if}
-		{#if canStopFreeRide}
+		{#if stopwatch.settings.mode === 'free'}
 			<TooltipButton
 				tooltip="Завершити вільний заїзд"
-				class="inline-flex items-center justify-center rounded-lg bg-red-700 p-3 text-lg text-white hover:bg-red-800 dark:bg-red-700 dark:hover:bg-red-600"
-				onclick={stopwatch.finishTimer}><LucideCircleStop /></TooltipButton
+				class="inline-flex items-center justify-center rounded-lg bg-red-700 p-3 text-lg text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+				disabled={!canStopFreeRide}
+				onclick={stopwatch.finishTimer}><LucideSquare /></TooltipButton
 			>
 		{:else}
 			<TooltipButton
