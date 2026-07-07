@@ -1,5 +1,4 @@
 <script lang="ts">
-	import LucideTrophy from '~icons/lucide/trophy';
 	import LucideTimerReset from '~icons/lucide/timer-reset';
 	import LucideSquare from '~icons/lucide/square';
 	import LucidePause from '~icons/lucide/pause';
@@ -64,16 +63,16 @@
 		return formatTime(Math.min(...lapTimes));
 	});
 
-	function startNewRide() {
-		stopwatch.resetTimer();
+	function confirmNewRide() {
 		dialog?.close();
+		confirmDialog?.showModal();
 	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>Velodrome Timing</title>
+	<title>Velodrome Timing System</title>
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
@@ -82,16 +81,11 @@
 		class="flex items-center justify-between gap-5 bg-gray-100 p-2 px-6 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
 	>
 		<h1 class="flex items-center gap-2 text-lg tracking-wide uppercase">
-			<MakiRacetrackCycling /> Velodrome Timing
+			<MakiRacetrackCycling class="shrink-0" />
+			<span class="hidden md:inline-block">Velodrome Timing System</span>
+			<span class="md:hidden inline-block">VTS</span>
 		</h1>
 		<nav class="flex items-center gap-2">
-			{#if stopwatch.isFinished}
-				<TooltipButton
-					tooltip="Показати результат"
-					class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-					onclick={() => dialog?.showModal()}><LucideTrophy /></TooltipButton
-				>
-			{/if}
 			<SettingsButton
 				settings={stopwatch.settings}
 				onSettingsChange={stopwatch.updateSettings}
@@ -160,7 +154,7 @@
 					</button>
 					<button
 						class="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-						onclick={startNewRide}
+						onclick={confirmNewRide}
 					>
 						Почати новий заїзд
 					</button>
@@ -226,6 +220,13 @@
 				onclick={stopwatch.addLap}
 			>
 				Коло
+			</button>
+		{:else if stopwatch.isFinished}
+			<button
+				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-pink-600 px-4 py-3 font-semibold tracking-wide text-white uppercase shadow-sm transition-transform hover:bg-pink-700 active:scale-97 dark:bg-pink-500 dark:text-gray-950 dark:hover:bg-pink-400"
+				onclick={() => dialog?.showModal()}
+			>
+				Результат
 			</button>
 		{/if}
 		{#if stopwatch.settings.mode === 'free'}
