@@ -50,7 +50,21 @@
 			distance: 'За дистанцією'
 		}[stopwatch.settings.mode]
 	);
-	const distanceKm = $derived((stopwatch.laps.length * stopwatch.settings.lapDistance) / 1000);
+	const distanceMeters = $derived(stopwatch.laps.length * stopwatch.settings.lapDistance);
+	const distanceKm = $derived(distanceMeters / 1000);
+	const progressLabel = $derived(() => {
+		const settings = stopwatch.settings;
+		switch (settings.mode) {
+			case 'free':
+				return formatDistance(distanceMeters);
+			case 'laps':
+				return `${stopwatch.laps.length} з ${settings.targetLaps} кіл`;
+			case 'distance':
+				return `${formatDistance(distanceMeters)} з ${formatDistance(settings.targetDistance)}`;
+			case 'time':
+				return `Залишилось ${formatDuration(settings.targetTime - stopwatch.elapsedTime)} з ${formatDuration(settings.targetTime)}`;
+		}
+	});
 	const averageSpeed = $derived(() => {
 		const hours = stopwatch.elapsedTime / 3600000;
 		return hours > 0 ? (distanceKm / hours).toFixed(2) : '0.00';
@@ -62,6 +76,23 @@
 		);
 		return formatTime(Math.min(...lapTimes));
 	});
+
+	function formatDistance(meters: number) {
+		const km = Math.floor(meters / 1000);
+		const m = meters % 1000;
+		if (!km) return `${m} м`;
+		return m ? `${km} км ${m} м` : `${km} км`;
+	}
+
+	function formatDuration(ms: number) {
+		const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+		if (hours) return minutes ? `${hours} год ${minutes} хв` : `${hours} год`;
+		if (minutes) return `${minutes} хв ${seconds} сек`;
+		return `${seconds} сек`;
+	}
 
 	function confirmNewRide() {
 		dialog?.close();
@@ -111,7 +142,7 @@
 	</header>
 
 	<main
-		class="grid h-full w-full grid-cols-1 content-center overflow-hidden bg-white dark:bg-gray-900"
+		class="relative grid h-full w-full grid-cols-1 content-center overflow-hidden bg-white dark:bg-gray-900"
 	>
 		<Dialog bind:dialog>
 			<div class="space-y-6 p-6">
@@ -182,11 +213,11 @@
 			title="Час на коло (сек)"
 			value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
 		/>
-		<div class="text-center">
+		<div class="absolute right-0 bottom-4 left-0 text-center">
 			<span
 				class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
 			>
-				Режим: {modeLabel}
+				Режим: {modeLabel}{progressLabel() ? ` · ${progressLabel()}` : ''}
 			</span>
 		</div>
 		<Timer timeDisplay={stopwatch.timeDisplay} />

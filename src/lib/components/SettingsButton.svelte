@@ -2,6 +2,8 @@
 	import { onDestroy } from 'svelte';
 	import { Popover, Tooltip } from 'bits-ui';
 	import LucideSettings from '~icons/lucide/settings';
+	import LucideX from '~icons/lucide/x';
+	import TooltipButton from '$lib/components/TooltipButton.svelte';
 	import { DEFAULT_SETTINGS, type StopwatchSettings, type TrackMode } from '$lib/types/settings';
 
 	interface Props {
@@ -18,6 +20,7 @@
 	let targetLaps = $state(DEFAULT_SETTINGS.targetLaps);
 	let targetDistance = $state(DEFAULT_SETTINGS.targetDistance);
 	let applied = $state(false);
+	let open = $state(false);
 	let appliedTimeout: number | undefined;
 
 	$effect(() => {
@@ -85,7 +88,7 @@
 	</Popover.Trigger>
 {/snippet}
 
-<Popover.Root>
+<Popover.Root bind:open>
 	<Tooltip.Root>
 		<Tooltip.Trigger child={settingsTrigger} />
 		<Tooltip.Content
@@ -108,13 +111,20 @@
 			>
 				<div class="flex items-center justify-between gap-4">
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Налаштування</h3>
-					{#if applied}
-						<span
-							class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300"
+					<div class="flex items-center gap-2">
+						{#if applied}
+							<span
+								class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300"
+							>
+								Застосовано
+							</span>
+						{/if}
+						<TooltipButton
+							tooltip="Закрити налаштування"
+							class="rounded-lg bg-gray-100 p-2 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+							onclick={() => (open = false)}><LucideX /></TooltipButton
 						>
-							Застосовано
-						</span>
-					{/if}
+					</div>
 				</div>
 				{#if disabled}
 					<p
