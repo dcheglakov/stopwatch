@@ -9,6 +9,7 @@
 	import Dialog from '$lib/components/Dialog.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import SettingsButton from '$lib/components/SettingsButton.svelte';
+	import TooltipButton from '$lib/components/TooltipButton.svelte';
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
 	import type { KeyboardHandler, ClickHandler } from '$lib/types/events';
@@ -56,9 +57,10 @@
 		</h1>
 		<nav class="flex items-center gap-2">
 			{#if stopwatch.isFinished}
-				<button
+				<TooltipButton
+					tooltip="Показати результат"
 					class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-					onclick={() => dialog?.showModal()}><LucideTrophy /></button
+					onclick={() => dialog?.showModal()}><LucideTrophy /></TooltipButton
 				>
 			{/if}
 			<SettingsButton
@@ -66,7 +68,8 @@
 				onSettingsChange={stopwatch.updateSettings}
 				disabled={stopwatch.isRunning || stopwatch.elapsedTime > 0}
 			/>
-			<button
+			<TooltipButton
+				tooltip={isDark.current ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
 				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (isDark.current = !isDark.current)}
 			>
@@ -75,7 +78,7 @@
 				{:else}
 					<LucideSun />
 				{/if}
-			</button>
+			</TooltipButton>
 		</nav>
 	</header>
 
@@ -108,16 +111,19 @@
 			value={stopwatch.progressPercentage}
 			class="absolute -top-2 left-0 h-2 w-full">{stopwatch.progressPercentage}%</progress
 		>
-		<button
+		<TooltipButton
+			tooltip="Пауза"
 			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
 			disabled={!stopwatch.isRunning}
-			onclick={stopwatch.stopTimer}><LucidePause /></button
+			onclick={stopwatch.stopTimer}><LucidePause /></TooltipButton
 		>
 		{#if canStart}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-green-700 active:scale-97 dark:bg-green-700 dark:hover:bg-green-600"
-				onclick={stopwatch.startTimer}>{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}</button
+				onclick={stopwatch.startTimer}
 			>
+				{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}
+			</button>
 		{:else if canAddLap}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-pink-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-pink-500 active:scale-97 disabled:opacity-50 dark:bg-pink-700 dark:hover:bg-pink-600"
@@ -126,10 +132,12 @@
 				Коло
 			</button>
 		{/if}
-		<button
+		<TooltipButton
+			tooltip="Скинути таймер"
 			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
 			onclick={handleResetClick}
-			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}><LucideTimerReset /></button
+			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}
+			><LucideTimerReset /></TooltipButton
 		>
 	</footer>
 

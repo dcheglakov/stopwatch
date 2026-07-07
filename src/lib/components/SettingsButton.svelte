@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Popover } from 'bits-ui';
+	import { Popover, Tooltip } from 'bits-ui';
 	import LucideSettings from '~icons/lucide/settings';
 	import type { StopwatchSettings, TrackMode } from '$lib/types/settings';
 
@@ -65,13 +65,33 @@
 	}
 </script>
 
-<Popover.Root>
+{#snippet settingsTrigger({ props }: { props: Record<string, unknown> })}
 	<Popover.Trigger
+		{...props}
 		{disabled}
+		aria-label="Налаштування"
 		class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 	>
 		<LucideSettings />
 	</Popover.Trigger>
+{/snippet}
+
+<Popover.Root>
+	<Tooltip.Root>
+		<Tooltip.Trigger child={settingsTrigger} />
+		<Tooltip.Content
+			sideOffset={8}
+			collisionPadding={8}
+			strategy="fixed"
+			class="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--bits-tooltip-content-transform-origin) z-50"
+		>
+			<div
+				class="max-w-[calc(100vw-1rem)] rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white shadow-md dark:bg-gray-100 dark:text-gray-900"
+			>
+				Налаштування
+			</div>
+		</Tooltip.Content>
+	</Tooltip.Root>
 	<Popover.Portal>
 		<Popover.Content class="w-full max-w-md" sideOffset={12} collisionPadding={16}>
 			<div
