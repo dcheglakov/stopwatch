@@ -62,7 +62,7 @@
 			case 'distance':
 				return `${formatDistance(distanceMeters)} з ${formatDistance(settings.targetDistance)}`;
 			case 'time':
-				return `Залишилось ${formatDuration(settings.targetTime - stopwatch.elapsedTime)} з ${formatDuration(settings.targetTime)}`;
+				return `${formatDuration(settings.targetTime - stopwatch.elapsedTime)} з ${formatDuration(settings.targetTime)}`;
 		}
 	});
 	const averageSpeed = $derived(() => {
