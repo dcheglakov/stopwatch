@@ -3,7 +3,7 @@
 	import LucideTrophy from '~icons/lucide/trophy';
 	import LucideTimerReset from '~icons/lucide/timer-reset';
 	import LucidePause from '~icons/lucide/pause';
-	import LucideBike from '~icons/lucide/bike';
+	import MakiRacetrackCycling from '~icons/maki/racetrack-cycling';
 	import LucideSun from '~icons/lucide/sun';
 	import LucideMoon from '~icons/lucide/moon';
 	import Dialog from '$lib/components/Dialog.svelte';
@@ -43,7 +43,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>Elevidys для Марчика</title>
+	<title>Velodrome Timing</title>
 	<meta name="description" content="Stopwatch" />
 </svelte:head>
 
@@ -52,7 +52,7 @@
 		class="flex items-center justify-between gap-5 bg-gray-100 p-2 px-6 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
 	>
 		<h1 class="flex items-center gap-2 text-lg tracking-wide uppercase">
-			<LucideBike /> Elevidys для Марчика
+			<MakiRacetrackCycling /> Velodrome Timing
 		</h1>
 		<nav class="flex items-center gap-2">
 			{#if stopwatch.isFinished}
