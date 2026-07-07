@@ -1,4 +1,4 @@
-export type TrackMode = 'time' | 'laps' | 'distance';
+export type TrackMode = 'free' | 'time' | 'laps' | 'distance';
 
 export interface StopwatchSettings {
 	mode: TrackMode;
@@ -13,8 +13,8 @@ export interface StopwatchSettings {
 }
 
 export const DEFAULT_SETTINGS: StopwatchSettings = {
-	mode: 'time',
-	targetTime: 43200000, // 12 година
+	mode: 'free',
+	targetTime: 43200000, // 12 годин
 	targetLaps: 100,
 	targetDistance: 100000, // 100 км
 	lapDistance: 250 // 250 метрів

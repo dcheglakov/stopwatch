@@ -2,7 +2,9 @@
 	import helpMarko from '$lib/assets/help_marko.webp';
 	import LucideTrophy from '~icons/lucide/trophy';
 	import LucideTimerReset from '~icons/lucide/timer-reset';
+	import LucideCircleStop from '~icons/lucide/circle-stop';
 	import LucidePause from '~icons/lucide/pause';
+	import LucideCircleHelp from '~icons/lucide/circle-help';
 	import MakiRacetrackCycling from '~icons/maki/racetrack-cycling';
 	import LucideSun from '~icons/lucide/sun';
 	import LucideMoon from '~icons/lucide/moon';
@@ -17,6 +19,7 @@
 	import Timer from '$lib/components/Timer.svelte';
 
 	let dialog = $state<HTMLDialogElement | null>(null);
+	let guideDialog = $state<HTMLDialogElement | null>(null);
 	let confirmDialog = $state<HTMLDialogElement | null>(null);
 
 	const stopwatch = useStopwatch();
@@ -38,7 +41,16 @@
 	};
 
 	const canAddLap = $derived(stopwatch.isRunning && !stopwatch.isFinished);
+	const canStopFreeRide = $derived(canAddLap && stopwatch.settings.mode === 'free');
 	const canStart = $derived(!stopwatch.isRunning && !stopwatch.isFinished);
+	const modeLabel = $derived(
+		{
+			free: 'Вільний заїзд',
+			time: 'За часом',
+			laps: 'За колами',
+			distance: 'За дистанцією'
+		}[stopwatch.settings.mode]
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -69,6 +81,11 @@
 				disabled={stopwatch.isRunning || stopwatch.elapsedTime > 0}
 			/>
 			<TooltipButton
+				tooltip="Як користуватись"
+				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+				onclick={() => guideDialog?.showModal()}><LucideCircleHelp /></TooltipButton
+			>
+			<TooltipButton
 				tooltip={isDark.current ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
 				class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 				onclick={() => (isDark.current = !isDark.current)}
@@ -88,10 +105,26 @@
 		<Dialog bind:dialog>
 			<div class="grid grid-cols-1 sm:grid-cols-2">
 				<div class="p-6">
-					<h2 class="pb-4 text-3xl font-bold">Ціль виконано</h2>
+					<h2 class="pb-4 text-3xl font-bold">Заїзд завершено</h2>
 					<p>Таймер зупинено.</p>
 				</div>
 				<img src={helpMarko} alt="Logo" class="hidden h-auto w-full sm:block" />
+			</div>
+		</Dialog>
+
+		<Dialog bind:dialog={guideDialog}>
+			<div class="space-y-4 p-6">
+				<h2 class="text-3xl font-bold">Як користуватись</h2>
+				<ul class="list-disc space-y-2 pl-5 text-sm leading-6 text-gray-700 dark:text-gray-300">
+					<li><b>Старт</b> запускає заїзд. Після старту налаштування вже не застосовуються.</li>
+					<li><b>Пауза</b> тимчасово зупиняє таймер, <b>Продовжити</b> запускає його далі.</li>
+					<li><b>Коло</b> фіксує час поточного кола. Також працюють клавіші пробіл або L.</li>
+					<li><b>Вільний</b> режим не має цілі. Натисніть <b>Зупинити</b>, щоб завершити заїзд.</li>
+					<li>
+						<b>Час</b>, <b>Кола</b> і <b>Дистанція</b> завершуються автоматично при досягненні цілі.
+					</li>
+					<li><b>Скинути таймер</b> очищає час і кола, після цього можна змінити налаштування.</li>
+				</ul>
 			</div>
 		</Dialog>
 
@@ -99,6 +132,13 @@
 			title="Час на коло (сек)"
 			value={stopwatch.laps.length ? stopwatch.laps[0].lapTime : '00.00'}
 		/>
+		<div class="text-center">
+			<span
+				class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+			>
+				Режим: {modeLabel}
+			</span>
+		</div>
 		<Timer timeDisplay={stopwatch.timeDisplay} />
 	</main>
 
@@ -132,13 +172,21 @@
 				Коло
 			</button>
 		{/if}
-		<TooltipButton
-			tooltip="Скинути таймер"
-			class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
-			onclick={handleResetClick}
-			disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}
-			><LucideTimerReset /></TooltipButton
-		>
+		{#if canStopFreeRide}
+			<TooltipButton
+				tooltip="Завершити вільний заїзд"
+				class="inline-flex items-center justify-center rounded-lg bg-red-700 p-3 text-lg text-white hover:bg-red-800 dark:bg-red-700 dark:hover:bg-red-600"
+				onclick={stopwatch.finishTimer}><LucideCircleStop /></TooltipButton
+			>
+		{:else}
+			<TooltipButton
+				tooltip="Скинути таймер"
+				class="inline-flex items-center justify-center rounded-lg bg-gray-700 p-3 text-lg text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
+				onclick={handleResetClick}
+				disabled={stopwatch.isRunning || stopwatch.elapsedTime === 0}
+				><LucideTimerReset /></TooltipButton
+			>
+		{/if}
 	</footer>
 
 	<ConfirmDialog

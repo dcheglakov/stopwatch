@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { Popover, Tooltip } from 'bits-ui';
 	import LucideSettings from '~icons/lucide/settings';
-	import type { StopwatchSettings, TrackMode } from '$lib/types/settings';
+	import { DEFAULT_SETTINGS, type StopwatchSettings, type TrackMode } from '$lib/types/settings';
 
 	interface Props {
 		settings: StopwatchSettings;
@@ -11,13 +12,14 @@
 
 	let { settings, onSettingsChange, disabled = false }: Props = $props();
 
-	let mode = $state<TrackMode>('distance');
-	let lapDistance = $derived(settings.lapDistance);
-	let targetTime = $derived(settings.targetTime);
-	let targetLaps = $derived(settings.targetLaps);
-	let targetDistance = $derived(settings.targetDistance);
+	let mode = $state<TrackMode>(DEFAULT_SETTINGS.mode);
+	let lapDistance = $state(DEFAULT_SETTINGS.lapDistance);
+	let targetTime = $state(DEFAULT_SETTINGS.targetTime);
+	let targetLaps = $state(DEFAULT_SETTINGS.targetLaps);
+	let targetDistance = $state(DEFAULT_SETTINGS.targetDistance);
+	let applied = $state(false);
+	let appliedTimeout: number | undefined;
 
-	// Оновлюємо локальний стан коли settings змінюються ззовні
 	$effect(() => {
 		mode = settings.mode;
 		lapDistance = validateLapDistance(settings.lapDistance);
@@ -26,15 +28,21 @@
 		targetDistance = parseDistanceInput(formatDistanceInput(settings.targetDistance));
 	});
 
-	$effect(() => {
-		onSettingsChange({
-			mode,
-			lapDistance,
-			targetTime,
-			targetLaps,
-			targetDistance
-		});
-	});
+	function applySettings() {
+		if (disabled) return;
+		onSettingsChange({ mode, lapDistance, targetTime, targetLaps, targetDistance });
+		applied = true;
+		clearTimeout(appliedTimeout);
+		appliedTimeout = window.setTimeout(() => (applied = false), 2000);
+	}
+
+	function resetDraft() {
+		mode = DEFAULT_SETTINGS.mode;
+		lapDistance = DEFAULT_SETTINGS.lapDistance;
+		targetTime = DEFAULT_SETTINGS.targetTime;
+		targetLaps = DEFAULT_SETTINGS.targetLaps;
+		targetDistance = DEFAULT_SETTINGS.targetDistance;
+	}
 
 	function formatTimeInput(ms: number): string {
 		const hours = Math.floor(ms / 3600000);
@@ -63,14 +71,15 @@
 	function validateTargetLaps(value: number): number {
 		return Math.max(1, Math.min(1000, value));
 	}
+
+	onDestroy(() => clearTimeout(appliedTimeout));
 </script>
 
 {#snippet settingsTrigger({ props }: { props: Record<string, unknown> })}
 	<Popover.Trigger
 		{...props}
-		{disabled}
 		aria-label="Налаштування"
-		class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+		class="rounded-lg bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
 	>
 		<LucideSettings />
 	</Popover.Trigger>
@@ -97,9 +106,24 @@
 			<div
 				class="flex flex-col gap-4 rounded-xl border-2 border-gray-300 bg-white p-6 shadow-lg dark:border-gray-600 dark:bg-gray-800"
 			>
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Налаштування</h3>
+				<div class="flex items-center justify-between gap-4">
+					<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Налаштування</h3>
+					{#if applied}
+						<span
+							class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300"
+						>
+							Застосовано
+						</span>
+					{/if}
+				</div>
+				{#if disabled}
+					<p
+						class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+					>
+						Змінити налаштування можна тільки до старту заїзду.
+					</p>
+				{/if}
 
-				<!-- Довжина кола -->
 				<div class="flex flex-col gap-2">
 					<label for="lap-distance" class="text-sm font-medium text-gray-700 dark:text-gray-300">
 						Довжина кола (метри)
@@ -117,10 +141,19 @@
 					/>
 				</div>
 
-				<!-- Режим роботи -->
 				<div class="flex flex-col gap-2">
 					<div class="text-sm font-medium text-gray-700 dark:text-gray-300">Режим</div>
-					<div class="grid grid-cols-3 gap-2">
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+						<button
+							type="button"
+							onclick={() => (mode = 'free')}
+							class="rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors {mode ===
+							'free'
+								? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-900 dark:text-blue-100'
+								: 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
+						>
+							Вільний
+						</button>
 						<button
 							type="button"
 							onclick={() => (mode = 'time')}
@@ -154,9 +187,12 @@
 					</div>
 				</div>
 
-				<!-- Налаштування для обраного режиму -->
 				<div class="flex flex-col gap-2">
-					{#if mode === 'time'}
+					{#if mode === 'free'}
+						<p class="text-sm text-gray-600 dark:text-gray-400">
+							Вільний заїзд триває, поки ви не натиснете «Зупинити».
+						</p>
+					{:else if mode === 'time'}
 						<label for="target-time" class="text-sm font-medium text-gray-700 dark:text-gray-300">
 							Цільовий час (години)
 						</label>
@@ -180,7 +216,7 @@
 							value={targetLaps}
 							oninput={(e) =>
 								(targetLaps = validateTargetLaps(parseInt(e.currentTarget.value) || 1))}
-							min="0"
+							min="1"
 							max="1000"
 							step="10"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
@@ -197,12 +233,30 @@
 							type="number"
 							value={formatDistanceInput(targetDistance)}
 							oninput={(e) => (targetDistance = parseDistanceInput(e.currentTarget.value))}
-							min="0"
+							min="1"
 							max="1000"
 							step="5"
 							class="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
 						/>
 					{/if}
+				</div>
+
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						class="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+						onclick={resetDraft}
+					>
+						Скинути
+					</button>
+					<button
+						type="button"
+						class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600"
+						{disabled}
+						onclick={applySettings}
+					>
+						Застосувати
+					</button>
 				</div>
 			</div>
 		</Popover.Content>
