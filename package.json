@@ -32,8 +32,6 @@
 		"svelte": "^5.56.4",
 		"svelte-check": "^4.7.2",
 		"svelte-confetti": "^2.3.2",
-		"tailwind-merge": "^3.6.0",
-		"tailwind-variants": "^3.2.2",
 		"tailwindcss": "^4.3.2",
 		"tailwindcss-animate": "^1.0.7",
 		"typescript": "^6.0.3",
@@ -50,7 +48,6 @@
 	},
 	"packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa",
 	"dependencies": {
-		"bits-ui": "^2.18.1",
-		"clsx": "^2.1.1"
+		"bits-ui": "^2.18.1"
 	}
 }
