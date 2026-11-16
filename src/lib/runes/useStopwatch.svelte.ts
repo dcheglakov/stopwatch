@@ -57,13 +57,16 @@ export function useStopwatch() {
 		if (settings.current.mode === 'time' && goalReached()) finishTimer();
 	}
 
-	function startTimer() {
+	/** `at` (epoch ms, not in the future) backdates the start, e.g. to a remote crossing. */
+	function startTimer(at?: number) {
 		if (isRunning || isFinished()) return;
 
-		startTimeState.current = Date.now();
+		const now = Date.now();
+		startTimeState.current = at === undefined ? now : Math.min(at, now);
 		interval = setInterval(updateTime, 10);
 		isRunningState.current = true;
 		isRunning = true;
+		updateTime();
 	}
 
 	function stopTimer() {
@@ -100,14 +103,22 @@ export function useStopwatch() {
 		isRunning = false;
 	}
 
-	function addLap() {
+	/** `at` (epoch ms) places the lap at that moment instead of now, e.g. a remote crossing. */
+	function addLap(at?: number) {
 		if (!isRunning) return;
 
-		const lapTimeMs = currentElapsedTime - (laps.current.length ? laps.current[0].elapsedTime : 0);
+		const previous = laps.current.length ? laps.current[0].elapsedTime : 0;
+		let elapsed = currentElapsedTime;
+		if (at !== undefined) {
+			const now = Date.now();
+			const nowElapsed = now - startTimeState.current + accumulatedTimeState.current;
+			elapsed = Math.max(previous, Math.min(nowElapsed, nowElapsed - (now - at)));
+		}
+		const lapTimeMs = elapsed - previous;
 		const lap: Lap = {
 			lapTime: formatTime(lapTimeMs),
-			totalTime: formatTime(currentElapsedTime, true),
-			elapsedTime: currentElapsedTime
+			totalTime: formatTime(elapsed, true),
+			elapsedTime: elapsed
 		};
 		laps.current = [lap, ...laps.current];
 

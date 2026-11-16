@@ -9,6 +9,8 @@
 	import Dialog from '$lib/components/Dialog.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import SettingsButton from '$lib/components/SettingsButton.svelte';
+	import RemoteLapsButton from '$lib/components/RemoteLapsButton.svelte';
+	import { useRemoteLaps } from '$lib/runes/useRemoteLaps.svelte';
 	import TooltipButton from '$lib/components/TooltipButton.svelte';
 	import { PersistedState } from 'runed';
 	import { useStopwatch } from '$lib/runes/useStopwatch.svelte';
@@ -22,6 +24,7 @@
 	let confirmDialog = $state<HTMLDialogElement | null>(null);
 
 	const stopwatch = useStopwatch();
+	const remote = useRemoteLaps(stopwatch);
 	const isDark = new PersistedState<boolean>('stopwatch-dark-mode', false);
 
 	const handleKeydown: KeyboardHandler = (event) => {
@@ -117,6 +120,7 @@
 			<span class="md:hidden inline-block">VTS</span>
 		</h1>
 		<nav class="flex items-center gap-2">
+			<RemoteLapsButton {remote} />
 			<SettingsButton
 				settings={stopwatch.settings}
 				onSettingsChange={stopwatch.updateSettings}
@@ -241,14 +245,14 @@
 		{#if canStart}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-green-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-green-700 active:scale-97 dark:bg-green-700 dark:hover:bg-green-600"
-				onclick={stopwatch.startTimer}
+				onclick={() => stopwatch.startTimer()}
 			>
 				{stopwatch.elapsedTime > 0 ? 'Продовжити' : 'Старт'}
 			</button>
 		{:else if canAddLap}
 			<button
 				class="inline-flex w-full max-w-48 items-center justify-center rounded-full bg-pink-600 px-4 py-3 tracking-wide text-white uppercase transition-transform hover:bg-pink-500 active:scale-97 disabled:opacity-50 dark:bg-pink-700 dark:hover:bg-pink-600"
-				onclick={stopwatch.addLap}
+				onclick={() => stopwatch.addLap()}
 			>
 				Коло
 			</button>
