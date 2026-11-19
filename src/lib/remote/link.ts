@@ -7,7 +7,12 @@
 //
 // Each message carries the phone's own time of the crossing (`at`). Network
 // delay varies, so we map phone time to laptop time with the smallest offset
-// seen so far: the gaps between laps then match the phone exactly.
+// seen so far: the gaps between laps then match the phone exactly. A lap that
+// arrives late (the phone queued it while offline) keeps its real time.
+//
+// Direct link: the phone also sends a WebRTC offer through the brokers and we
+// answer it. The data channel then runs over the local network only, so laps
+// keep coming when the hotspot loses its internet.
 
 import { MqttClient, type LinkStatus } from './mqtt';
 
@@ -19,6 +24,7 @@ export const DEFAULT_BROKERS = [
 export const DEFAULT_NTFY = 'https://ntfy.sh';
 
 export const mqttTopic = (code: string) => `tracktime/v1/${code}`;
+export const rtcTopic = (code: string) => `tracktime/v1/${code}/rtc`;
 export const ntfyTopic = (code: string) => `tracktime-v1-${code}`;
 
 export interface LinkMessage {
@@ -57,19 +63,42 @@ export function parseMessage(text: string): LinkMessage | null {
 	return null;
 }
 
-/** Maps phone time to laptop time using the smallest offset seen per device. */
+/**
+ * Maps phone time to laptop time using the smallest offset seen per device.
+ *
+ * Laps can arrive late (queued on the phone while it was offline), so a lap
+ * never moves the offset up. Pings are only ever sent live, so two pings in a
+ * row that agree on a much larger offset mean a clock was changed: start over.
+ */
 export class ClockMap {
 	private minOff = new Map<string, number>();
-	// A jump this large means a clock was changed, not a slow network: start over.
+	private bigPing = new Map<string, number>();
 	constructor(private resetAfterMs = 5000) {}
 
 	/** Returns the laptop time (epoch ms) of the event and the estimated network delay. */
-	toLocal(dev: string, at: number, receivedAt: number): { local: number; delay: number } {
+	toLocal(
+		dev: string,
+		at: number,
+		receivedAt: number,
+		live = true
+	): { local: number; delay: number } {
 		const off = receivedAt - at;
 		let m = this.minOff.get(dev);
-		if (m === undefined || off < m || off - m > this.resetAfterMs) {
+		if (m === undefined || off < m) {
 			m = off;
 			this.minOff.set(dev, m);
+			this.bigPing.delete(dev);
+		} else if (live && off - m > this.resetAfterMs) {
+			const prev = this.bigPing.get(dev);
+			if (prev !== undefined && Math.abs(prev - off) < 1000) {
+				m = off;
+				this.minOff.set(dev, m);
+				this.bigPing.delete(dev);
+			} else {
+				this.bigPing.set(dev, off);
+			}
+		} else if (live) {
+			this.bigPing.delete(dev);
 		}
 		return { local: at + m, delay: off - m };
 	}
@@ -171,8 +200,110 @@ class NtfyListener {
 	}
 }
 
+interface SignalMessage {
+	v: 1;
+	type: 'offer' | 'answer' | 'hello';
+	dev?: string;
+	to?: string;
+	sid?: string;
+	sdp?: string;
+}
+
+/** Waits until ICE gathering is complete (or `ms` passes), so one message carries all candidates. */
+function gathered(pc: RTCPeerConnection, ms: number): Promise<void> {
+	if (pc.iceGatheringState === 'complete') return Promise.resolve();
+	return new Promise((resolve) => {
+		const t = setTimeout(done, ms);
+		function done() {
+			clearTimeout(t);
+			pc.removeEventListener('icegatheringstatechange', check);
+			resolve();
+		}
+		function check() {
+			if (pc.iceGatheringState === 'complete') done();
+		}
+		pc.addEventListener('icegatheringstatechange', check);
+	});
+}
+
+/** The laptop's side of the direct link: answers the phone's WebRTC offer. */
+class DirectAnswerer {
+	status: LinkStatus = 'closed';
+	private pc: RTCPeerConnection | null = null;
+	private sid = '';
+	private seenSids = new Set<string>();
+
+	constructor(
+		private signal: (m: SignalMessage) => void,
+		private onMessage: (text: string) => void,
+		private onStatus: () => void,
+		private gatherMs = 3000
+	) {}
+
+	static get supported() {
+		return typeof RTCPeerConnection === 'function';
+	}
+
+	private set(s: LinkStatus) {
+		if (this.status !== s) {
+			this.status = s;
+			this.onStatus();
+		}
+	}
+
+	async onSignal(m: SignalMessage) {
+		if (m.type !== 'offer' || typeof m.sdp !== 'string' || !m.sid || !m.dev) return;
+		if (this.seenSids.has(m.sid)) return; // the copy from the other broker
+		this.seenSids.add(m.sid);
+		// The phone only offers again when its link is gone, so replace ours.
+		this.close();
+		const pc = new RTCPeerConnection({ iceServers: [] });
+		this.pc = pc;
+		this.sid = m.sid;
+		this.set('connecting');
+		pc.ondatachannel = (e) => {
+			const dc = e.channel;
+			dc.onopen = () => {
+				if (this.pc === pc) this.set('open');
+			};
+			dc.onmessage = (ev) => {
+				if (typeof ev.data === 'string') this.onMessage(ev.data);
+			};
+			dc.onclose = () => {
+				if (this.pc === pc) this.close();
+			};
+			if (dc.readyState === 'open' && this.pc === pc) this.set('open');
+		};
+		pc.onconnectionstatechange = () => {
+			if (this.pc === pc && (pc.connectionState === 'failed' || pc.connectionState === 'closed'))
+				this.close();
+		};
+		try {
+			await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
+			await pc.setLocalDescription(await pc.createAnswer());
+			await gathered(pc, this.gatherMs);
+			if (this.pc !== pc || !pc.localDescription) return;
+			this.signal({ v: 1, type: 'answer', to: m.dev, sid: m.sid, sdp: pc.localDescription.sdp });
+		} catch {
+			if (this.pc === pc) this.close();
+		}
+	}
+
+	close() {
+		const pc = this.pc;
+		this.pc = null;
+		try {
+			pc?.close();
+		} catch {
+			/* ignore */
+		}
+		this.set('closed');
+	}
+}
+
 export interface LinkState {
 	links: { name: string; status: LinkStatus }[];
+	direct: LinkStatus | null; // the WebRTC link over the local network (null: not supported)
 	lastSeen: number | null; // laptop time of the last message from TrackTime
 }
 
@@ -182,6 +313,7 @@ export interface ReceiverOptions {
 	onState?: (state: LinkState) => void;
 	brokers?: string[];
 	ntfy?: string | null;
+	direct?: boolean;
 }
 
 export class LapReceiver {
@@ -189,20 +321,49 @@ export class LapReceiver {
 	private seen = new Seen();
 	private clock = new ClockMap();
 	private lastSeen: number | null = null;
+	private direct: DirectAnswerer | null = null;
+	private maxSeq = new Map<string, number>(); // highest lap message number seen per phone
+
+	private lastSeq(): Record<string, number> {
+		return Object.fromEntries(this.maxSeq);
+	}
 
 	constructor(private opts: ReceiverOptions) {
 		const topic = mqttTopic(opts.code);
+		const rtc = rtcTopic(opts.code);
 		const brokers = opts.brokers ?? DEFAULT_BROKERS;
-		const onStatus = () => this.emit();
+		const mqtt: MqttClient[] = [];
+		if (opts.direct !== false && DirectAnswerer.supported) {
+			this.direct = new DirectAnswerer(
+				(m) => {
+					const text = JSON.stringify(m);
+					for (const c of mqtt) c.publish(rtc, text);
+				},
+				(text) => this.handle(text),
+				() => this.emit()
+			);
+		}
 		for (const url of brokers) {
-			const c = new MqttClient({
+			const c: MqttClient = new MqttClient({
 				url,
-				onMessage: (_t, payload) => this.handle(payload),
-				onStatus
+				onMessage: (t, payload) => {
+					if (t === topic) this.handle(payload);
+					else if (t === rtc) this.onSignal(payload);
+				},
+				onStatus: (s) => {
+					// Tell the phone we are (back) here: it re-sends laps after the last
+					// one we got, and makes a fresh direct-link offer if it has none.
+					if (s === 'open')
+						c.publish(rtc, JSON.stringify({ v: 1, type: 'hello', seen: this.lastSeq() }));
+					this.emit();
+				}
 			});
 			c.subscribe(topic);
+			c.subscribe(rtc);
+			mqtt.push(c);
 			this.clients.push({ name: new URL(url).host, link: c });
 		}
+		const onStatus = () => this.emit();
 		const ntfy = opts.ntfy === undefined ? DEFAULT_NTFY : opts.ntfy;
 		if (ntfy) {
 			const wsUrl = ntfy.replace(/^http/, 'ws') + '/' + ntfyTopic(opts.code) + '/ws';
@@ -220,13 +381,25 @@ export class LapReceiver {
 
 	stop() {
 		for (const c of this.clients) c.link.stop();
+		this.direct?.close();
+	}
+
+	private onSignal(text: string) {
+		try {
+			const m = JSON.parse(text);
+			if (m && m.v === 1 && m.type === 'offer') this.direct?.onSignal(m as SignalMessage);
+		} catch {
+			/* not ours */
+		}
 	}
 
 	private handle(text: string) {
 		const now = Date.now();
 		const msg = parseMessage(text);
 		if (!msg || !this.seen.add(`${msg.dev}:${msg.seq}`)) return;
-		const { local } = this.clock.toLocal(msg.dev, msg.at, now);
+		if (msg.type === 'lap' && msg.seq > (this.maxSeq.get(msg.dev) ?? 0))
+			this.maxSeq.set(msg.dev, msg.seq);
+		const { local } = this.clock.toLocal(msg.dev, msg.at, now, msg.type === 'ping');
 		this.lastSeen = now;
 		if (msg.type === 'lap') this.opts.onLap(Math.min(local, now), msg);
 		this.emit();
@@ -235,15 +408,19 @@ export class LapReceiver {
 	private emit() {
 		this.opts.onState?.({
 			links: this.clients.map((c) => ({ name: c.name, status: c.link.status })),
+			direct: this.direct ? this.direct.status : null,
 			lastSeen: this.lastSeen
 		});
 	}
 }
 
-/** Test hook: `?relay=ws://host:port[,more]` replaces the brokers, `?ntfy=off|URL`. */
-export function linkOverrides(search: string): Pick<ReceiverOptions, 'brokers' | 'ntfy'> {
+/** Test hook: `?relay=ws://host:port[,more]` replaces the brokers, `?ntfy=off|URL`, `?direct=off`. */
+export function linkOverrides(
+	search: string
+): Pick<ReceiverOptions, 'brokers' | 'ntfy' | 'direct'> {
 	const p = new URLSearchParams(search);
-	const out: Pick<ReceiverOptions, 'brokers' | 'ntfy'> = {};
+	const out: Pick<ReceiverOptions, 'brokers' | 'ntfy' | 'direct'> = {};
+	if (p.get('direct') === 'off') out.direct = false;
 	const relay = p.get('relay');
 	if (relay) out.brokers = relay.split(',').filter(Boolean);
 	const ntfy = p.get('ntfy');

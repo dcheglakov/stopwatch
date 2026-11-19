@@ -40,9 +40,11 @@
 	const tooltip = $derived(
 		!remote.enabled
 			? 'Кола з TrackTime'
-			: remote.connected
-				? 'TrackTime: підключено'
-				: 'TrackTime: підключення…'
+			: remote.direct
+				? 'TrackTime: підключено напряму'
+				: remote.connected
+					? 'TrackTime: підключено'
+					: 'TrackTime: підключення…'
 	);
 
 	function clock(t: number) {
@@ -86,8 +88,9 @@
 					>
 				</div>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Телефон на фініші (TrackTime) сам додає коло, коли лідер групи перетинає лінію. Потрібен
-					інтернет на телефоні і на ноутбуці.
+					Телефон на фініші (TrackTime) сам додає коло, коли лідер групи перетинає лінію. Для
+					підключення потрібен інтернет. Якщо обидва пристрої в одній Wi-Fi мережі (хотспоті),
+					з'являється пряме з'єднання, і кола йдуть далі навіть без інтернету.
 				</p>
 
 				<label class="flex items-center gap-3 text-sm font-medium">
@@ -143,6 +146,23 @@
 									<span>{STATUS_TEXT[link.status]}</span>
 								</li>
 							{/each}
+							{#if remote.linkState.direct}
+								<li class="flex items-center gap-2" data-testid="remote-direct">
+									<span
+										class="h-2 w-2 rounded-full {remote.linkState.direct === 'open'
+											? 'bg-green-500'
+											: remote.linkState.direct === 'connecting'
+												? 'bg-amber-500'
+												: 'bg-gray-400'}"
+									></span>
+									<span class="text-gray-600 dark:text-gray-400">напряму (без інтернету)</span>
+									<span
+										>{remote.linkState.direct === 'closed'
+											? 'немає'
+											: STATUS_TEXT[remote.linkState.direct]}</span
+									>
+								</li>
+							{/if}
 						</ul>
 						<p class="pt-2 text-gray-600 dark:text-gray-400">
 							{#if remote.lastSignal}
