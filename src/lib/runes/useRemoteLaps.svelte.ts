@@ -16,7 +16,7 @@ export function useRemoteLaps(stopwatch: StopwatchControls) {
 	const code = new PersistedState<string>('stopwatch-remote-code', '');
 	const autoStart = new PersistedState<boolean>('stopwatch-remote-autostart', true);
 
-	let linkState = $state<LinkState>({ links: [], direct: null, lastSeen: null });
+	let linkState = $state<LinkState>({ links: [], direct: null, directDetail: '', lastSeen: null });
 	let lastSignal = $state<{ at: number; result: 'lap' | 'start' | 'ignored' } | null>(null);
 	let receiver: LapReceiver | null = null;
 	let mounted = false;
@@ -37,7 +37,7 @@ export function useRemoteLaps(stopwatch: StopwatchControls) {
 	function restart() {
 		receiver?.stop();
 		receiver = null;
-		linkState = { links: [], direct: null, lastSeen: null };
+		linkState = { links: [], direct: null, directDetail: '', lastSeen: null };
 		if (!mounted || !enabled.current || !code.current) return;
 		receiver = new LapReceiver({
 			code: code.current,

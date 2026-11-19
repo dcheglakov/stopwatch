@@ -162,6 +162,11 @@
 											: STATUS_TEXT[remote.linkState.direct]}</span
 									>
 								</li>
+								{#if remote.linkState.direct !== 'open' && remote.linkState.directDetail}
+									<li class="pl-4 text-xs text-gray-500" data-testid="remote-direct-detail">
+										{remote.linkState.directDetail}
+									</li>
+								{/if}
 							{/if}
 						</ul>
 						<p class="pt-2 text-gray-600 dark:text-gray-400">

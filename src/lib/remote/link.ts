@@ -226,12 +226,28 @@ function gathered(pc: RTCPeerConnection, ms: number): Promise<void> {
 	});
 }
 
+/** Short summary of an SDP's ICE candidates: local IPs, hidden (.local) names, or none. */
+export function describeCandidates(sdp: string): string {
+	const ips = new Set<string>();
+	let hidden = 0;
+	for (const line of sdp.split(/\r?\n/)) {
+		const m = /^a=candidate:\S+ \d+ udp \d+ (\S+) \d+ typ host/i.exec(line);
+		if (!m) continue;
+		if (m[1].endsWith('.local')) hidden++;
+		else ips.add(m[1]);
+	}
+	const parts = [...ips];
+	if (hidden) parts.push(`прихованих адрес: ${hidden}`);
+	return parts.length ? parts.join(', ') : 'немає локальної адреси';
+}
+
 /** The laptop's side of the direct link: answers the phone's WebRTC offer. */
 class DirectAnswerer {
 	status: LinkStatus = 'closed';
 	private pc: RTCPeerConnection | null = null;
 	private sid = '';
 	private seenSids = new Set<string>();
+	detail = ''; // why it is not up yet, for the popover
 
 	constructor(
 		private signal: (m: SignalMessage) => void,
@@ -251,6 +267,13 @@ class DirectAnswerer {
 		}
 	}
 
+	private note(d: string) {
+		if (this.detail !== d) {
+			this.detail = d;
+			this.onStatus();
+		}
+	}
+
 	async onSignal(m: SignalMessage) {
 		if (m.type !== 'offer' || typeof m.sdp !== 'string' || !m.sid || !m.dev) return;
 		if (this.seenSids.has(m.sid)) return; // the copy from the other broker
@@ -264,7 +287,10 @@ class DirectAnswerer {
 		pc.ondatachannel = (e) => {
 			const dc = e.channel;
 			dc.onopen = () => {
-				if (this.pc === pc) this.set('open');
+				if (this.pc === pc) {
+					this.detail = '';
+					this.set('open');
+				}
 			};
 			dc.onmessage = (ev) => {
 				if (typeof ev.data === 'string') this.onMessage(ev.data);
@@ -274,9 +300,16 @@ class DirectAnswerer {
 			};
 			if (dc.readyState === 'open' && this.pc === pc) this.set('open');
 		};
+		pc.oniceconnectionstatechange = () => {
+			if (this.pc === pc && this.status !== 'open')
+				this.note(`перевірка мережі: ${pc.iceConnectionState}`);
+		};
 		pc.onconnectionstatechange = () => {
-			if (this.pc === pc && (pc.connectionState === 'failed' || pc.connectionState === 'closed'))
+			if (this.pc !== pc) return;
+			if (pc.connectionState === 'failed') {
+				this.note('телефон і ноутбук не бачать один одного в цій мережі');
 				this.close();
+			} else if (pc.connectionState === 'closed') this.close();
 		};
 		try {
 			await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
@@ -284,8 +317,14 @@ class DirectAnswerer {
 			await gathered(pc, this.gatherMs);
 			if (this.pc !== pc || !pc.localDescription) return;
 			this.signal({ v: 1, type: 'answer', to: m.dev, sid: m.sid, sdp: pc.localDescription.sdp });
+			this.note(
+				`телефон: ${describeCandidates(m.sdp)}; ноутбук: ${describeCandidates(pc.localDescription.sdp)}`
+			);
 		} catch {
-			if (this.pc === pc) this.close();
+			if (this.pc === pc) {
+				this.note('не вдалося відповісти телефону');
+				this.close();
+			}
 		}
 	}
 
@@ -304,6 +343,7 @@ class DirectAnswerer {
 export interface LinkState {
 	links: { name: string; status: LinkStatus }[];
 	direct: LinkStatus | null; // the WebRTC link over the local network (null: not supported)
+	directDetail: string; // why the direct link is not up yet
 	lastSeen: number | null; // laptop time of the last message from TrackTime
 }
 
@@ -409,6 +449,7 @@ export class LapReceiver {
 		this.opts.onState?.({
 			links: this.clients.map((c) => ({ name: c.name, status: c.link.status })),
 			direct: this.direct ? this.direct.status : null,
+			directDetail: this.direct?.detail ?? '',
 			lastSeen: this.lastSeen
 		});
 	}
